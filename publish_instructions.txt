@@ -3,6 +3,16 @@
 1. Open PowerShell in your project directory.
 2. Run one of the following commands depending on your target platform:
 
+**For All:**
+```
+dotnet build ".\Automatic-Edge-Browser-Web-Searcher.sln"
+```
+
+**Or: **
+```
+dotnet build ".\Automatic Edge Browser Web Searcher.csproj"
+```
+
 **For 64-bit Windows:**
 ```
 dotnet publish ".\Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
