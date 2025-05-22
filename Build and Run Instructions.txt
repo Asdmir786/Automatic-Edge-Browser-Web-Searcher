@@ -1,33 +1,68 @@
 # How to Build a Standalone EXE for Automatic Edge Browser Web Searcher
 
-1. Open PowerShell in your project directory.
-2. Run one of the following commands depending on your target platform:
+1. **Open PowerShell** in your project directory.
 
-**For All:**
-```
-dotnet build ".\Automatic-Edge-Browser-Web-Searcher.sln"
-```
+2. **Restore Dependencies**
 
-**Or: **
-```
-dotnet build ".\Automatic Edge Browser Web Searcher.csproj"
-```
+   ```powershell
+   dotnet restore "Automatic Edge Browser Web Searcher.csproj"
+   ```
 
-**For 64-bit Windows:**
-```
-dotnet publish ".\Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
-```
-- The 64-bit .exe will be in:
-  `bin\Release\net9.0\win-x64\publish\`
+3. **Build Locally**
 
-**For 32-bit Windows:**
-```
-dotnet publish ".\Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x86 --self-contained true /p:PublishSingleFile=true
-```
-- The 32-bit .exe will be in:
-  `bin\Release\net9.0\win-x86\publish\`
+   ```powershell
+   dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release
+   ```
 
-## Notes
-- No need to distribute queries.txt; it is built into the .exe.
-- You can copy the .exe to any Windows machine and run it from cmd or by double-clicking.
-- If you update queries.txt, rebuild the project to embed the new queries.
+4. **Run Smoke Tests**
+
+   * If you have unit/integration tests:
+
+     ```powershell
+     dotnet test
+     ```
+   * Or run the console app to verify behavior:
+
+     ```powershell
+     dotnet run --project "Automatic Edge Browser Web Searcher.csproj"
+     ```
+
+5. **Clean Previous Publish Output**
+
+   ```powershell
+   Remove-Item .\publish\* -Force
+   ```
+
+6. **Publish Single-File EXE**
+
+   * **For 64-bit Windows:**
+
+     ```powershell
+     dotnet publish "Automatic Edge Browser Web Searcher.csproj" \
+       -c Release \
+       -r win-x64 \
+       --self-contained true \
+       -p:PublishSingleFile=true \
+       --output .\publish
+     ```
+   * **For 32-bit Windows:**
+
+     ```powershell
+     dotnet publish "Automatic Edge Browser Web Searcher.csproj" \
+       -c Release \
+       -r win-x86 \
+       --self-contained true \
+       -p:PublishSingleFile=true \
+       --output .\publish
+     ```
+
+7. **Smoke-Run the Published EXE**
+
+   ```powershell
+   cd publish
+   .\Automatic-Edge-Browser-Web-Searcher.exe
+   ```
+
+---
+
+*No additional deployment or tagging steps are required here.*
