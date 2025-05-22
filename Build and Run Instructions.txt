@@ -60,7 +60,7 @@
 
    ```powershell
    cd publish
-   .\Automatic-Edge-Browser-Web-Searcher.exe
+    & '.\Automatic Edge Browser Web Searcher.exe'
    ```
 
 ---
