@@ -38,22 +38,12 @@
    * **For 64-bit Windows:**
 
      ```powershell
-     dotnet publish "Automatic Edge Browser Web Searcher.csproj" \
-       -c Release \
-       -r win-x64 \
-       --self-contained true \
-       -p:PublishSingleFile=true \
-       --output .\publish
+     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true --output .\publish-win64
      ```
    * **For 32-bit Windows:**
 
      ```powershell
-     dotnet publish "Automatic Edge Browser Web Searcher.csproj" \
-       -c Release \
-       -r win-x86 \
-       --self-contained true \
-       -p:PublishSingleFile=true \
-       --output .\publish
+     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x86 --self-contained true -p:PublishSingleFile=true --output .\publish-win32
      ```
 
 7. **Smoke-Run the Published EXE**
