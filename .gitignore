@@ -3,3 +3,4 @@ obj/
 publish/
 publish-*/
 backup/*
+build-*/
