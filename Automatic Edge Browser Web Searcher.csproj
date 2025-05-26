@@ -8,9 +8,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Selenium.WebDriver" Version="4.32.0" />
-    <PackageReference Include="Selenium.WebDriver.MSEdgeDriver" Version="136.0.3240.76" />
+  <ItemGroup>    <PackageReference Include="Microsoft.Playwright" Version="1.52.0" />
   </ItemGroup>
 
   <ItemGroup>

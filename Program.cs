@@ -1,23 +1,24 @@
-﻿// Version: 1.0.0
-// Last updated: 2025-05-22
+﻿// Version: 1.1.0
+// Last updated: 2025-05-26
 /*
     Program.cs - Automatic Edge Browser Web Searcher
     ------------------------------------------------
-    This C# console application automates Microsoft Edge browser searches using Selenium WebDriver.
+    This C# console application automates Microsoft Edge browser searches using Playwright.
     It loads search queries from an embedded resource, removes duplicates, and performs a specified
     number of random Bing searches. The program simulates human-like typing and delays, and provides
-    progress feedback in the console. Useful for automation, testing, or demonstration purposes.
+    progress feedback in the console. It now enumerates real Edge user profiles and allows the user
+    to pick one for persistent context via Playwright. After each search, it waits for page load
+    completion plus an additional 3 seconds before proceeding.
 */
 
-using OpenQA.Selenium;
-using OpenQA.Selenium.Edge;
+using Microsoft.Playwright;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+
 
 namespace Automatic_Edge_Browser_Web_Searcher;
 
@@ -25,11 +26,87 @@ class Program
 {
     static readonly string[] LineSeparators = new[] { "\r", "\n" };
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
+        
+
+        // 1️⃣ Enumerate Edge user profiles
+
+        string edgeRoot = GetEdgeUserDataDir();
+
+        if (!Directory.Exists(edgeRoot))
+
+        {
+
+            Console.Error.WriteLine($"Could not find Edge user data at: {edgeRoot}");
+
+            return;
+
+        }
+
+
+
+        var profiles = Directory.EnumerateDirectories(edgeRoot)
+
+            .Where(dir =>
+
+            {
+
+                var name = Path.GetFileName(dir);
+
+                return name.Equals("Default", StringComparison.OrdinalIgnoreCase)
+
+                    || name.StartsWith("Profile", StringComparison.OrdinalIgnoreCase);
+
+            })
+
+            .ToArray();
+
+
+
+        if (profiles.Length == 0)
+
+        {
+
+            Console.Error.WriteLine("No Edge profiles found under user data directory.");
+
+            return;
+
+        }
+
+
+
+        Console.WriteLine("Available Edge profiles:");
+
+        for (int i = 0; i < profiles.Length; i++)
+
+            Console.WriteLine($"  [{i + 1}] {Path.GetFileName(profiles[i])}");
+
+        Console.Write("Select a profile number: ");
+
+        if (!int.TryParse(Console.ReadLine(), out int idx) || idx < 1 || idx > profiles.Length)
+
+        {
+
+            Console.Error.WriteLine("Invalid selection. Please run again and choose a valid number.");
+
+            return;
+
+        }
+
+        string selectedProfileDir = profiles[idx - 1];
+
+        string selectedProfileName = Path.GetFileName(selectedProfileDir);
+
+        Console.WriteLine($"\nSelected Edge profile: '{selectedProfileName}'\n");
+
+
+
         // Load queries from embedded resource
+
         string[] allQueries;
-        var assembly = typeof(Program).Assembly;
+
+        var assembly = Assembly.GetExecutingAssembly();
         using (var stream = assembly.GetManifestResourceStream("Automatic_Edge_Browser_Web_Searcher.queries.txt"))
         {
             if (stream == null)
@@ -50,7 +127,7 @@ class Program
         Console.OutputEncoding = Encoding.UTF8;
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine($"\n═══════════════════════════════════════════════════════════════════");
-        Console.WriteLine($"  Automatic Edge Browser Web Searcher");
+        Console.WriteLine($"  Automatic Edge Browser Web Searcher (Playwright)");
         Console.WriteLine($"═══════════════════════════════════════════════════════════════════\n");
         Console.ResetColor();
         Console.WriteLine($"Total queries (including duplicates): {allQueries.Length}");
@@ -65,75 +142,189 @@ class Program
             Console.ResetColor();
         }
         else
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
+        {            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("No duplicate queries found.");
             Console.ResetColor();
         }
+
+        // Ask for search count
+
         int searchCount = 5;
-        Console.Write("How many searches do you want to perform? (default 5): ");
+
+        Console.Write("\nHow many searches do you want to perform? (default 5): ");
+
         var input = Console.ReadLine();
+
         if (int.TryParse(input, out int userCount) && userCount > 0)
+
         {
+
             searchCount = userCount;
+
         }
-        // Only use Selenium to launch Edge after user input
-        var options = new EdgeOptions();
-        // Suppress EdgeDriver logs (including fallback_task_provider warning)
-        options.AddArgument("--log-level=3"); // Only fatal errors
-        options.AddArgument("--disable-logging");
-        options.AddArgument("--disable-logging-redirect");
-        options.AddArgument("--disable-dev-shm-usage");
-        options.AddArgument("--disable-gpu");
-        options.AddArgument("--disable-software-rasterizer");
-        options.AddArgument("--disable-background-timer-throttling");
-        options.AddArgument("--disable-backgrounding-occluded-windows");
-        options.AddArgument("--disable-renderer-backgrounding");
-        using var driver = new EdgeDriver(options);
+
+
+
         var rand = new Random();
+
         Console.ForegroundColor = ConsoleColor.Magenta;
-        Console.WriteLine($"\nStarting {searchCount} random searches...\n");
+
+        Console.WriteLine($"\nStarting {searchCount} random searches with profile '{selectedProfileName}'...\n");
+
         Console.ResetColor();
+
+
+
+        // Playwright automation using selected Edge profile
+
+        using var playwright = await Playwright.CreateAsync();
+
+        var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
+
+            userDataDir: selectedProfileDir,
+
+            options: new BrowserTypeLaunchPersistentContextOptions
+
+            {
+
+                Headless = false,
+
+                Channel = "msedge"
+
+            });
+
+        var page = browserContext.Pages.FirstOrDefault() ?? await browserContext.NewPageAsync();
+
+
+
         for (int i = 0; i < searchCount; i++)
+
         {
+
             string query = uniqueQueries[rand.Next(uniqueQueries.Count)].TrimEnd(',', '"', ' ');
-            driver.Navigate().GoToUrl("https://www.bing.com");
-            // Wait at least 4 seconds for the browser to load at the start, then less for subsequent searches
+
+            await page.GotoAsync("https://www.bing.com");
+
             if (i == 0)
-                Thread.Sleep(rand.Next(4000, 5000)); // 4-5 seconds for the first search
+
+                await Task.Delay(rand.Next(4000, 5000));
+
             else
-                Thread.Sleep(rand.Next(300, 600)); // Faster for subsequent searches
-            var searchBox = driver.FindElement(By.Id("sb_form_q"));
-            searchBox.Clear();
-            foreach (char c in query)
+
+                await Task.Delay(rand.Next(300, 600));
+
+
+
+            var searchBox = page.Locator("#sb_form_q");
+
+            try
+
             {
-                searchBox.SendKeys(c.ToString());
-                Thread.Sleep(rand.Next(20, 60)); // Even faster typing delay 0.02-0.06s
+
+                await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+                await searchBox.FillAsync("");
+
+                await searchBox.FillAsync(query);
+
+                await Task.Delay(rand.Next(100, 200));
+
+                await searchBox.PressAsync("Enter");
+
+                // Wait for page load and extra time
+
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+                await Task.Delay(3000);
+
             }
-            Thread.Sleep(rand.Next(100, 200));
-            searchBox.SendKeys(Keys.Enter);
-            // Progress bar and status
+
+            catch (Exception ex)
+
+            {
+
+                Console.ForegroundColor = ConsoleColor.Red;
+
+                Console.WriteLine($"Could not interact with Bing search box: {ex.Message}");
+
+                Console.ResetColor();
+
+                continue;
+
+            }
+
+
+
+            // Progress bar
+
+            int barWidth = 20;
+
+            double progress = (i + 1) / (double)searchCount;
+
+            int filled = (int)(progress * barWidth);
+
+            string bar = new string('█', filled) + new string('─', barWidth - filled);
+
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("[");
-            for (int j = 0; j < searchCount; j++)
-            {
-                if (j < i + 1)
-                    Console.Write("#");
-                else
-                    Console.Write(".");
-            }
-            Console.Write("] ");
+
+            Console.Write($"\r[{bar}] {i + 1}/{searchCount} searches");
+
             Console.ResetColor();
-            Console.Write($"({i+1}/{searchCount}) Searched: ");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(query);
-            Console.ResetColor();
-            if (i < searchCount - 1)
-                Thread.Sleep(rand.Next(2000, 3500)); // Wait 2-3.5s between searches
+
+            await Task.Delay(rand.Next(1200, 2000));
+
         }
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\nAll searches completed!\n");
-        Console.ResetColor();
-        driver.Quit();
+
+
+
+        // Cleanup
+
+        await browserContext.CloseAsync();
+
     }
+
+
+
+    static string GetEdgeUserDataDir()
+
+    {
+
+        if (OperatingSystem.IsWindows())
+
+        {
+
+            return Path.Combine(
+
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+
+                "Microsoft", "Edge", "User Data");
+
+        }
+
+        else if (OperatingSystem.IsMacOS())
+
+        {
+
+            return Path.Combine(
+
+                Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+
+                "Library", "Application Support", "Microsoft Edge");
+
+        }
+
+        else // Linux
+
+        {
+
+            return Path.Combine(
+
+                Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+
+                ".config", "microsoft-edge");
+
+        }
+
+    }
+
 }
