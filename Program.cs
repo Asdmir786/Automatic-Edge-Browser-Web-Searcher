@@ -252,10 +252,21 @@ class Program
                                     else
                                     {
                                         Console.WriteLine("No msedge.exe processes found in handle.exe output to kill automatically.");
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
-                                        Console.ResetColor();
-                                        Console.ReadLine();
+                                        // Only prompt if handle.exe output actually found a locking process, otherwise just retry
+                                        if (output.Contains("No matching handles found."))
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Yellow;
+                                            Console.WriteLine("\nNo processes are locking the file. Retrying profile copy automatically...\n");
+                                            Console.ResetColor();
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
+                                            Console.ResetColor();
+                                            Console.ReadLine();
+                                        }
                                     }
                                 }
                                 else
