@@ -33,7 +33,12 @@
    Remove-Item .\publish\* -Force
    ```
 
-6. **Publish Single-File EXE**
+6. **Combined Code For Restore, Build and Run**
+   ```powershell
+   dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet run --project "Automatic Edge Browser Web Searcher.csproj"
+   ```
+
+7. **Publish Single-File EXE**
 
    * **For 64-bit Windows:**
 
