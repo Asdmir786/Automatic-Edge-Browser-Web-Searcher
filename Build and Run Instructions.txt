@@ -43,7 +43,7 @@
    * **For 64-bit Windows:**
 
      ```powershell
-     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 --output .\publish-win64
+     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=false --output .\publish-win64
      ```
    * **For 32-bit Windows:**
 
