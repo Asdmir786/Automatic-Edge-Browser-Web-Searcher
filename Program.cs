@@ -30,76 +30,6 @@ class Program
     {
         
 
-        // 1️⃣ Enumerate Edge user profiles
-
-        string edgeRoot = GetEdgeUserDataDir();
-
-        if (!Directory.Exists(edgeRoot))
-
-        {
-
-            Console.Error.WriteLine($"Could not find Edge user data at: {edgeRoot}");
-
-            return;
-
-        }
-
-
-
-        var profiles = Directory.EnumerateDirectories(edgeRoot)
-
-            .Where(dir =>
-
-            {
-
-                var name = Path.GetFileName(dir);
-
-                return name.Equals("Default", StringComparison.OrdinalIgnoreCase)
-
-                    || name.StartsWith("Profile", StringComparison.OrdinalIgnoreCase);
-
-            })
-
-            .ToArray();
-
-
-
-        if (profiles.Length == 0)
-
-        {
-
-            Console.Error.WriteLine("No Edge profiles found under user data directory.");
-
-            return;
-
-        }
-
-
-
-        Console.WriteLine("Available Edge profiles:");
-
-        for (int i = 0; i < profiles.Length; i++)
-
-            Console.WriteLine($"  [{i + 1}] {Path.GetFileName(profiles[i])}");
-
-        // Profile selection loop
-        int idx = -1;
-        while (true)
-        {
-            Console.Write("Select a profile number: ");
-            var inputProfile = Console.ReadLine();
-            if (int.TryParse(inputProfile, out idx) && idx >= 1 && idx <= profiles.Length)
-                break;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Invalid selection. Please enter a valid number from the list.");
-            Console.ResetColor();
-        }
-        string selectedProfileDir = profiles[idx - 1];
-        string selectedProfileName = Path.GetFileName(selectedProfileDir);
-        Console.WriteLine($"\nSelected Edge profile: '{selectedProfileName}'\n");
-
-
-
         // Load queries from embedded resource
 
         string[] allQueries;
@@ -140,10 +70,52 @@ class Program
             Console.ResetColor();
         }
         else
-        {            Console.ForegroundColor = ConsoleColor.Green;
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("No duplicate queries found.");
             Console.ResetColor();
         }
+
+        // 1️⃣ Enumerate Edge user profiles
+        string edgeRoot = GetEdgeUserDataDir();
+        if (!Directory.Exists(edgeRoot))
+        {
+            Console.Error.WriteLine($"Could not find Edge user data at: {edgeRoot}");
+            return;
+        }
+        var profiles = Directory.EnumerateDirectories(edgeRoot)
+            .Where(dir =>
+            {
+                var name = Path.GetFileName(dir);
+                return name.Equals("Default", StringComparison.OrdinalIgnoreCase)
+                    || name.StartsWith("Profile", StringComparison.OrdinalIgnoreCase);
+            })
+            .ToArray();
+        if (profiles.Length == 0)
+        {
+            Console.Error.WriteLine("No Edge profiles found under user data directory.");
+            return;
+        }
+        Console.WriteLine("Available Edge profiles:");
+        for (int i = 0; i < profiles.Length; i++)
+            Console.WriteLine($"  [{i + 1}] {Path.GetFileName(profiles[i])}");
+        // Profile selection loop
+        int idx = -1;
+        while (true)
+        {
+            Console.Write("Select a profile number: ");
+            var inputProfile = Console.ReadLine();
+            if (int.TryParse(inputProfile, out idx) && idx >= 1 && idx <= profiles.Length)
+                break;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid selection. Please enter a valid number from the list.");
+            Console.ResetColor();
+        }
+        string selectedProfileDir = profiles[idx - 1];
+        string selectedProfileName = Path.GetFileName(selectedProfileDir);
+        Console.WriteLine($"\nSelected Edge profile: '{selectedProfileName}'\n");
+
+
 
         // Ask for search count (loop until valid)
         int searchCount = 5;
@@ -194,10 +166,7 @@ class Program
             }
             catch (IOException ex) when (ex.Message.Contains("because it is being used by another process"))
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
-                Console.ResetColor();
-                // Try to show what is locking the file (if handle.exe is available)
+                // Instantly show what is locking the file (if handle.exe is available)
                 string lockedFile = ExtractLockedFilePath(ex.Message);
                 if (!string.IsNullOrEmpty(lockedFile))
                 {
@@ -241,6 +210,9 @@ class Program
                         Console.WriteLine("(Could not run handle.exe to show locking process. Download from https://docs.microsoft.com/en-us/sysinternals/downloads/handle if you want this feature.)");
                     }
                 }
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
+                Console.ResetColor();
                 Console.ReadLine();
             }
         }
