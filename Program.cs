@@ -193,6 +193,70 @@ class Program
                                     Console.WriteLine("\nProcesses locking the file (handle.exe output):\n");
                                     Console.ResetColor();
                                     Console.WriteLine(output);
+                                    // Try to automatically kill Edge processes locking the file
+                                    var edgePids = new List<int>();
+                                    foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                                    {
+                                        // Typical handle.exe output:  msedge.exe       pid: 1234   ...
+                                        if (line.Contains("msedge.exe") && line.Contains("pid:"))
+                                        {
+                                            var pidIndex = line.IndexOf("pid:");
+                                            if (pidIndex != -1)
+                                            {
+                                                var afterPid = line.Substring(pidIndex + 4).TrimStart();
+                                                var pidStr = new string(afterPid.TakeWhile(char.IsDigit).ToArray());
+                                                if (int.TryParse(pidStr, out int pid))
+                                                    edgePids.Add(pid);
+                                            }
+                                        }
+                                    }
+                                    if (edgePids.Count > 0)
+                                    {
+                                        Console.ForegroundColor = ConsoleColor.Cyan;
+                                        Console.WriteLine($"\nAttempting to kill Edge processes locking the file: {string.Join(", ", edgePids)}");
+                                        Console.ResetColor();
+                                        bool allKilled = true;
+                                        foreach (var pid in edgePids.Distinct())
+                                        {
+                                            try
+                                            {
+                                                var procToKill = System.Diagnostics.Process.GetProcessById(pid);
+                                                procToKill.Kill();
+                                                Console.ForegroundColor = ConsoleColor.Green;
+                                                Console.WriteLine($"Process {pid} killed successfully.");
+                                                Console.ResetColor();
+                                            }
+                                            catch (Exception killEx)
+                                            {
+                                                allKilled = false;
+                                                Console.ForegroundColor = ConsoleColor.Red;
+                                                Console.WriteLine($"Failed to kill process {pid}: {killEx.Message}");
+                                                Console.ResetColor();
+                                            }
+                                        }
+                                        if (allKilled)
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Yellow;
+                                            Console.WriteLine("\nAll locking Edge processes killed. Retrying profile copy automatically...\n");
+                                            Console.ResetColor();
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            Console.WriteLine("\nSome processes could not be killed. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
+                                            Console.ResetColor();
+                                            Console.ReadLine();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("No msedge.exe processes found in handle.exe output to kill automatically.");
+                                        Console.ForegroundColor = ConsoleColor.Red;
+                                        Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
+                                        Console.ResetColor();
+                                        Console.ReadLine();
+                                    }
                                 }
                                 else
                                 {
