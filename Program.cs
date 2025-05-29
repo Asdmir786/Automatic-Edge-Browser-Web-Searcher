@@ -103,8 +103,13 @@ class Program
         int idx = -1;
         while (true)
         {
-            Console.Write("Select a profile number: ");
+            Console.Write("Select a profile number (default 1): ");
             var inputProfile = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(inputProfile))
+            {
+                idx = 1;
+                break;
+            }
             if (int.TryParse(inputProfile, out idx) && idx >= 1 && idx <= profiles.Length)
                 break;
             Console.ForegroundColor = ConsoleColor.Red;
