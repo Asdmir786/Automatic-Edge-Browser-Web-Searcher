@@ -1,5 +1,5 @@
-﻿// Version: 1.1.0
-// Last updated: 2025-05-26
+﻿// Version: 1.2.0
+// Last updated: 2025-05-30
 /*
     Program.cs - Automatic Edge Browser Web Searcher
     ------------------------------------------------
