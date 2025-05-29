@@ -82,22 +82,20 @@ class Program
 
             Console.WriteLine($"  [{i + 1}] {Path.GetFileName(profiles[i])}");
 
-        Console.Write("Select a profile number: ");
-
-        if (!int.TryParse(Console.ReadLine(), out int idx) || idx < 1 || idx > profiles.Length)
-
+        // Profile selection loop
+        int idx = -1;
+        while (true)
         {
-
-            Console.Error.WriteLine("Invalid selection. Please run again and choose a valid number.");
-
-            return;
-
+            Console.Write("Select a profile number: ");
+            var inputProfile = Console.ReadLine();
+            if (int.TryParse(inputProfile, out idx) && idx >= 1 && idx <= profiles.Length)
+                break;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid selection. Please enter a valid number from the list.");
+            Console.ResetColor();
         }
-
         string selectedProfileDir = profiles[idx - 1];
-
         string selectedProfileName = Path.GetFileName(selectedProfileDir);
-
         Console.WriteLine($"\nSelected Edge profile: '{selectedProfileName}'\n");
 
 
@@ -147,20 +145,25 @@ class Program
             Console.ResetColor();
         }
 
-        // Ask for search count
-
+        // Ask for search count (loop until valid)
         int searchCount = 5;
-
-        Console.Write("\nHow many searches do you want to perform? (default 5): ");
-
-        var input = Console.ReadLine();
-
-        if (int.TryParse(input, out int userCount) && userCount > 0)
-
+        while (true)
         {
-
-            searchCount = userCount;
-
+            Console.Write("\nHow many searches do you want to perform? (default 5): ");
+            var input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                searchCount = 5;
+                break;
+            }
+            if (int.TryParse(input, out int userCount) && userCount > 0)
+            {
+                searchCount = userCount;
+                break;
+            }
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid number. Please enter a positive integer.");
+            Console.ResetColor();
         }
 
 
@@ -179,18 +182,77 @@ class Program
 
         using var playwright = await Playwright.CreateAsync();
 
-        var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
-
-            userDataDir: selectedProfileDir,
-
-            options: new BrowserTypeLaunchPersistentContextOptions
-
+        // Copy selected profile to a temp directory to avoid profile lock issues, with retry if locked
+        string tempProfileDir = Path.Combine(Path.GetTempPath(), $"EdgeProfile_{Guid.NewGuid()}");
+        bool copySuccess = false;
+        while (!copySuccess)
+        {
+            try
             {
+                DirectoryCopy(selectedProfileDir, tempProfileDir, true);
+                copySuccess = true;
+            }
+            catch (IOException ex) when (ex.Message.Contains("because it is being used by another process"))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
+                Console.ResetColor();
+                // Try to show what is locking the file (if handle.exe is available)
+                string lockedFile = ExtractLockedFilePath(ex.Message);
+                if (!string.IsNullOrEmpty(lockedFile))
+                {
+                    try
+                    {
+                        string handlePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "handle.exe");
+                        if (File.Exists(handlePath))
+                        {
+                            var psi = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = handlePath,
+                                Arguments = $"-accepteula \"{lockedFile}\"",
+                                RedirectStandardOutput = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
+                            using (var proc = System.Diagnostics.Process.Start(psi))
+                            {
+                                if (proc != null)
+                                {
+                                    string output = proc.StandardOutput.ReadToEnd();
+                                    proc.WaitForExit();
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine("\nProcesses locking the file (handle.exe output):\n");
+                                    Console.ResetColor();
+                                    Console.WriteLine(output);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("(Could not start handle.exe process.)");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("(handle.exe not found in application directory. Download from https://docs.microsoft.com/en-us/sysinternals/downloads/handle if you want this feature.)");
+                        }
+                    }
+                    catch
+                    {
+                        Console.WriteLine("(Could not run handle.exe to show locking process. Download from https://docs.microsoft.com/en-us/sysinternals/downloads/handle if you want this feature.)");
+                    }
+                }
+                Console.ReadLine();
+            }
+        }
+        Console.WriteLine($"Copied profile to temp directory: {tempProfileDir}");
 
+        // Use the temp profile directory as the profile for Playwright
+        var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
+            userDataDir: tempProfileDir,
+            options: new BrowserTypeLaunchPersistentContextOptions
+            {
                 Headless = false,
-
                 Channel = "msedge"
-
             });
 
         var page = browserContext.Pages.FirstOrDefault() ?? await browserContext.NewPageAsync();
@@ -327,4 +389,47 @@ class Program
 
     }
 
+    // Add a helper method to copy directories recursively
+    static void DirectoryCopy(string sourceDir, string destDir, bool copySubDirs)
+    {
+        DirectoryInfo dir = new DirectoryInfo(sourceDir);
+        if (!dir.Exists)
+            throw new DirectoryNotFoundException($"Source directory does not exist: {sourceDir}");
+        DirectoryInfo[] dirs = dir.GetDirectories();
+        Directory.CreateDirectory(destDir);
+        foreach (FileInfo file in dir.GetFiles())
+        {
+            string targetFilePath = Path.Combine(destDir, file.Name);
+            try
+            {
+                file.CopyTo(targetFilePath, true);
+            }
+            catch (IOException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[Warning] Could not copy file '{file.FullName}': {ex.Message}");
+                    Console.ResetColor();
+                    // Let the exception bubble up for retry logic in Main
+                    throw;
+                }
+        }
+        if (copySubDirs)
+        {
+            foreach (DirectoryInfo subdir in dirs)
+            {
+                string targetSubDir = Path.Combine(destDir, subdir.Name);
+                DirectoryCopy(subdir.FullName, targetSubDir, copySubDirs);
+            }
+        }
+    }
+
+    // Helper to extract locked file path from IOException message
+    static string ExtractLockedFilePath(string message)
+    {
+        int firstQuote = message.IndexOf('\'');
+        int secondQuote = message.IndexOf('\'', firstQuote + 1);
+        if (firstQuote != -1 && secondQuote != -1 && secondQuote > firstQuote)
+            return message.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
+        return string.Empty;
+    }
 }
