@@ -305,12 +305,19 @@ class Program
         var page = browserContext.Pages.FirstOrDefault() ?? await browserContext.NewPageAsync();
 
 
-
+        var unusedQueries = new List<string>(uniqueQueries);
         for (int i = 0; i < searchCount; i++)
-
         {
-
-            string query = uniqueQueries[rand.Next(uniqueQueries.Count)].TrimEnd(',', '"', ' ');
+            if (unusedQueries.Count == 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\nNo more unique queries left to use.");
+                Console.ResetColor();
+                break;
+            }
+            int idxQuery = rand.Next(unusedQueries.Count);
+            string query = unusedQueries[idxQuery].TrimEnd(',', '"', ' ');
+            unusedQueries.RemoveAt(idxQuery);
 
             await page.GotoAsync("https://www.bing.com");
 
@@ -322,14 +329,10 @@ class Program
 
                 await Task.Delay(rand.Next(300, 600));
 
-
-
             var searchBox = page.Locator("#sb_form_q");
 
             try
-
             {
-
                 await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
 
                 await searchBox.FillAsync("");
@@ -345,11 +348,9 @@ class Program
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                 await Task.Delay(3000);
-
             }
 
             catch (Exception ex)
-
             {
 
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -359,10 +360,7 @@ class Program
                 Console.ResetColor();
 
                 continue;
-
             }
-
-
 
             // Progress bar
 
@@ -381,61 +379,39 @@ class Program
             Console.ResetColor();
 
             await Task.Delay(rand.Next(1200, 2000));
-
         }
-
-
-
         // Cleanup
 
         await browserContext.CloseAsync();
-
     }
 
-
-
     static string GetEdgeUserDataDir()
-
     {
-
         if (OperatingSystem.IsWindows())
-
         {
-
             return Path.Combine(
-
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
 
                 "Microsoft", "Edge", "User Data");
-
         }
 
         else if (OperatingSystem.IsMacOS())
-
         {
-
             return Path.Combine(
 
                 Environment.GetFolderPath(Environment.SpecialFolder.Personal),
 
                 "Library", "Application Support", "Microsoft Edge");
-
         }
-
         else // Linux
-
         {
-
             return Path.Combine(
 
                 Environment.GetFolderPath(Environment.SpecialFolder.Personal),
 
                 ".config", "microsoft-edge");
-
         }
-
     }
-
     // Add a helper method to copy directories recursively
     static void DirectoryCopy(string sourceDir, string destDir, bool copySubDirs)
     {
