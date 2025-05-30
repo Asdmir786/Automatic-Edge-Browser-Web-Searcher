@@ -197,7 +197,7 @@ class Program
             userDataDir: tempProfileDir,
             options: new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // Enable headless mode
+                Headless = false, // Enable headless mode
                 Channel = "msedge"
             });
 
@@ -218,59 +218,64 @@ class Program
             string query = unusedQueries[idxQuery].TrimEnd(',', '"', ' ');
             unusedQueries.RemoveAt(idxQuery);
 
-            // Log the search query being performed
             Console.WriteLine($"Performing search {i + 1}/{searchCount}: {query}");
 
-            await page.GotoAsync("https://www.bing.com");
-
-            if (i == 0)
-
-                await Task.Delay(rand.Next(4000, 5000));
-
-            else
-
-                await Task.Delay(rand.Next(300, 600));
-
-            var searchBox = page.Locator("#sb_form_q");
+            int retryCount = 0;
+            bool navigationSuccessful = false;
 
             try
             {
+                var searchBox = page.Locator("#sb_form_q");
                 await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
-
                 await searchBox.FillAsync("");
-
                 await searchBox.FillAsync(query);
-
                 await Task.Delay(rand.Next(100, 200));
-
                 await searchBox.PressAsync("Enter");
 
-                // Wait for page load and extra time
-
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
                 await Task.Delay(3000);
             }
-
             catch (Exception ex)
             {
-
                 Console.ForegroundColor = ConsoleColor.Red;
-
                 Console.WriteLine($"Could not interact with Bing search box: {ex.Message}");
-
                 Console.ResetColor();
-
                 continue;
             }
 
-        // Simplified output without progress bar
-        Console.WriteLine($"Performing search {i + 1}/{searchCount}: {query}");
-        await Task.Delay(rand.Next(1200, 2000));
+            if (!navigationSuccessful)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Failed to navigate to Bing after {retryCount} retries. Skipping search.");
+                Console.ResetColor();
+                continue;
+            }
+
+            try
+            {
+                var searchBox = page.Locator("#sb_form_q");
+                await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+                await searchBox.FillAsync("");
+                await searchBox.FillAsync(query);
+                await Task.Delay(rand.Next(100, 200));
+                await searchBox.PressAsync("Enter");
+
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                await Task.Delay(3000);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Could not interact with Bing search box: {ex.Message}");
+                Console.ResetColor();
+                continue;
+            }
         }
-        
-        // Cleanup
+
         await browserContext.CloseAsync();
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("\nAll searches completed successfully!");
+        Console.ResetColor();
     }
 
     static string GetEdgeUserDataDir()
@@ -332,15 +337,5 @@ class Program
                 DirectoryCopy(subdir.FullName, targetSubDir, copySubDirs);
             }
         }
-    }
-
-    // Helper to extract locked file path from IOException message
-    static string ExtractLockedFilePath(string message)
-    {
-        int firstQuote = message.IndexOf('\'');
-        int secondQuote = message.IndexOf('\'', firstQuote + 1);
-        if (firstQuote != -1 && secondQuote != -1 && secondQuote > firstQuote)
-            return message.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
-        return string.Empty;
     }
 }
