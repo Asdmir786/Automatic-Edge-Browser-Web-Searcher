@@ -120,7 +120,42 @@ class Program
         string selectedProfileName = Path.GetFileName(selectedProfileDir);
         Console.WriteLine($"\nSelected Edge profile: '{selectedProfileName}'\n");
 
+        // Check if the -temp folder already exists
+        string tempProfileDir = selectedProfileDir + "-temp";
+        if (!Directory.Exists(tempProfileDir))
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"\nTo avoid file lock issues, a temporary copy of your profile is required.");
+            Console.WriteLine($"File Explorer will open with your selected profile highlighted.\n");
+            Console.WriteLine($"Please COPY and PASTE the folder, then rename the copy to: {selectedProfileName}-temp");
+            Console.WriteLine($"(Example: If your profile is 'Default', create 'Default-temp')\n");
+            Console.WriteLine($"When done, press Enter to continue...");
+            Console.ResetColor();
 
+            // Open File Explorer with the profile folder selected
+            var explorerProc = System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{selectedProfileDir}\"");
+
+            while (!Directory.Exists(tempProfileDir))
+            {
+                Console.WriteLine($"Waiting for '{selectedProfileName}-temp' to appear in the same directory...");
+                Console.WriteLine("Press Enter to retry, or Ctrl+C to exit.");
+                Console.ReadLine();
+            }
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Found temp profile: '{Path.GetFileName(tempProfileDir)}'. Using it for automation.\n");
+            Console.ResetColor();
+        }
+
+        // Inspecting contents of the -temp profile folder
+        Console.WriteLine("Inspecting contents of the -temp profile folder...");
+        var tempProfileContents = Directory.GetFiles(tempProfileDir);
+        foreach (var file in tempProfileContents)
+        {
+            Console.WriteLine(file);
+        }
 
         // Ask for search count (loop until valid)
         int searchCount = 5;
@@ -156,154 +191,13 @@ class Program
 
 
         // Playwright automation using selected Edge profile
-
         using var playwright = await Playwright.CreateAsync();
-
-        // Copy selected profile to a temp directory to avoid profile lock issues, with retry if locked
-        string tempProfileDir = Path.Combine(Path.GetTempPath(), $"EdgeProfile_{Guid.NewGuid()}");
-        bool copySuccess = false;
-        while (!copySuccess)
-        {
-            try
-            {
-                DirectoryCopy(selectedProfileDir, tempProfileDir, true);
-                copySuccess = true;
-            }
-            catch (IOException ex) when (ex.Message.Contains("because it is being used by another process"))
-            {
-                // Instantly show what is locking the file (if handle.exe is available)
-                string lockedFile = ExtractLockedFilePath(ex.Message);
-                if (!string.IsNullOrEmpty(lockedFile))
-                {
-                    try
-                    {
-                        string handlePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "handle.exe");
-                        if (File.Exists(handlePath))
-                        {
-                            var psi = new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = handlePath,
-                                Arguments = $"-accepteula \"{lockedFile}\"",
-                                RedirectStandardOutput = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            };
-                            using (var proc = System.Diagnostics.Process.Start(psi))
-                            {
-                                if (proc != null)
-                                {
-                                    string output = proc.StandardOutput.ReadToEnd();
-                                    proc.WaitForExit();
-                                    Console.ForegroundColor = ConsoleColor.Yellow;
-                                    Console.WriteLine("\nProcesses locking the file (handle.exe output):\n");
-                                    Console.ResetColor();
-                                    Console.WriteLine(output);
-                                    // Try to automatically kill Edge processes locking the file
-                                    var edgePids = new List<int>();
-                                    foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-                                    {
-                                        // Typical handle.exe output:  msedge.exe       pid: 1234   ...
-                                        if (line.Contains("msedge.exe") && line.Contains("pid:"))
-                                        {
-                                            var pidIndex = line.IndexOf("pid:");
-                                            if (pidIndex != -1)
-                                            {
-                                                var afterPid = line.Substring(pidIndex + 4).TrimStart();
-                                                var pidStr = new string(afterPid.TakeWhile(char.IsDigit).ToArray());
-                                                if (int.TryParse(pidStr, out int pid))
-                                                    edgePids.Add(pid);
-                                            }
-                                        }
-                                    }
-                                    if (edgePids.Count > 0)
-                                    {
-                                        Console.ForegroundColor = ConsoleColor.Cyan;
-                                        Console.WriteLine($"\nAttempting to kill Edge processes locking the file: {string.Join(", ", edgePids)}");
-                                        Console.ResetColor();
-                                        bool allKilled = true;
-                                        foreach (var pid in edgePids.Distinct())
-                                        {
-                                            try
-                                            {
-                                                var procToKill = System.Diagnostics.Process.GetProcessById(pid);
-                                                procToKill.Kill();
-                                                Console.ForegroundColor = ConsoleColor.Green;
-                                                Console.WriteLine($"Process {pid} killed successfully.");
-                                                Console.ResetColor();
-                                            }
-                                            catch (Exception killEx)
-                                            {
-                                                allKilled = false;
-                                                Console.ForegroundColor = ConsoleColor.Red;
-                                                Console.WriteLine($"Failed to kill process {pid}: {killEx.Message}");
-                                                Console.ResetColor();
-                                            }
-                                        }
-                                        if (allKilled)
-                                        {
-                                            Console.ForegroundColor = ConsoleColor.Yellow;
-                                            Console.WriteLine("\nAll locking Edge processes killed. Retrying profile copy automatically...\n");
-                                            Console.ResetColor();
-                                            continue;
-                                        }
-                                        else
-                                        {
-                                            Console.ForegroundColor = ConsoleColor.Red;
-                                            Console.WriteLine("\nSome processes could not be killed. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
-                                            Console.ResetColor();
-                                            Console.ReadLine();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("No msedge.exe processes found in handle.exe output to kill automatically.");
-                                        // Only prompt if handle.exe output actually found a locking process, otherwise just retry
-                                        if (output.Contains("No matching handles found."))
-                                        {
-                                            Console.ForegroundColor = ConsoleColor.Yellow;
-                                            Console.WriteLine("\nNo processes are locking the file. Retrying profile copy automatically...\n");
-                                            Console.ResetColor();
-                                            continue;
-                                        }
-                                        else
-                                        {
-                                            Console.ForegroundColor = ConsoleColor.Red;
-                                            Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
-                                            Console.ResetColor();
-                                            Console.ReadLine();
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    Console.WriteLine("(Could not start handle.exe process.)");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("(handle.exe not found in application directory. Download from https://docs.microsoft.com/en-us/sysinternals/downloads/handle if you want this feature.)");
-                        }
-                    }
-                    catch
-                    {
-                        Console.WriteLine("(Could not run handle.exe to show locking process. Download from https://docs.microsoft.com/en-us/sysinternals/downloads/handle if you want this feature.)");
-                    }
-                }
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\nA file in the Edge profile is locked. Please close all Edge browser windows (including background processes) and press Enter to retry.\n");
-                Console.ResetColor();
-                Console.ReadLine();
-            }
-        }
-        Console.WriteLine($"Copied profile to temp directory: {tempProfileDir}");
-
         // Use the temp profile directory as the profile for Playwright
         var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
             userDataDir: tempProfileDir,
             options: new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false,
+                Headless = true, // Enable headless mode
                 Channel = "msedge"
             });
 
@@ -323,6 +217,9 @@ class Program
             int idxQuery = rand.Next(unusedQueries.Count);
             string query = unusedQueries[idxQuery].TrimEnd(',', '"', ' ');
             unusedQueries.RemoveAt(idxQuery);
+
+            // Log the search query being performed
+            Console.WriteLine($"Performing search {i + 1}/{searchCount}: {query}");
 
             await page.GotoAsync("https://www.bing.com");
 
@@ -367,26 +264,12 @@ class Program
                 continue;
             }
 
-            // Progress bar
-
-            int barWidth = 20;
-
-            double progress = (i + 1) / (double)searchCount;
-
-            int filled = (int)(progress * barWidth);
-
-            string bar = new string('█', filled) + new string('─', barWidth - filled);
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-
-            Console.Write($"\r[{bar}] {i + 1}/{searchCount} searches");
-
-            Console.ResetColor();
-
-            await Task.Delay(rand.Next(1200, 2000));
+        // Simplified output without progress bar
+        Console.WriteLine($"Performing search {i + 1}/{searchCount}: {query}");
+        await Task.Delay(rand.Next(1200, 2000));
         }
+        
         // Cleanup
-
         await browserContext.CloseAsync();
     }
 

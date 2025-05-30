@@ -51,7 +51,22 @@
      dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x86 --output .\publish-win32
      ```
 
-7. **Smoke-Run the Published EXE**
+8. **Install Playwright Edge Browser**
+
+   * **For 64-bit Windows:**
+
+     ```powershell
+     cd .\publish-win64
+     ./playwright.ps1 install --force msedge
+     ```
+   * **For 32-bit Windows:**
+
+     ```powershell
+     cd .\publish-win32
+     ./playwright.ps1 install --force msedge
+     ```
+
+9. **Smoke-Run the Published EXE**
 
    ```powershell
    cd publish
