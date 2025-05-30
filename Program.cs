@@ -223,30 +223,43 @@ class Program
             int retryCount = 0;
             bool navigationSuccessful = false;
 
-            try
-            {
+            while (retryCount < 3 && !navigationSuccessful) {
+                try {
+                    await page.GotoAsync("https://www.bing.com", new PageGotoOptions { Timeout = 10000 }); // Navigate to Bing.com
+                    navigationSuccessful = true;
+                } catch (Microsoft.Playwright.PlaywrightException ex) {
+                    retryCount++;
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[Retry {retryCount}] Playwright error during navigation: {ex.Message}");
+                    Console.ResetColor();
+                } catch (Exception ex) {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Unexpected error during navigation: {ex.Message}");
+                    Console.ResetColor();
+                    break;
+                }
+            }
+
+            if (!navigationSuccessful) {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Failed to navigate to Bing.com after {retryCount} retries. Skipping search.");
+                Console.ResetColor();
+                continue;
+            }
+
+            try {
                 var searchBox = page.Locator("#sb_form_q");
-                await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+                await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10000 }); // Increased timeout to 10 seconds
                 await searchBox.FillAsync("");
                 await searchBox.FillAsync(query);
                 await Task.Delay(rand.Next(100, 200));
                 await searchBox.PressAsync("Enter");
 
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                await Task.Delay(3000);
-            }
-            catch (Exception ex)
-            {
+                await Task.Delay(1000); // Removed redundant Enter press
+            } catch (Exception ex) {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Could not interact with Bing search box: {ex.Message}");
-                Console.ResetColor();
-                continue;
-            }
-
-            if (!navigationSuccessful)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Failed to navigate to Bing after {retryCount} retries. Skipping search.");
                 Console.ResetColor();
                 continue;
             }
