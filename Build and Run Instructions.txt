@@ -30,7 +30,7 @@
 5. **Clean Previous Publish Output**
 
    ```powershell
-   Remove-Item .\publish\* -Force
+   rm .\publish-*\ -Force
    ```
 
 6. **Combined Code For Restore, Build and Run**
@@ -74,5 +74,3 @@
    ```
 
 ---
-
-*No additional deployment or tagging steps are required here.*
