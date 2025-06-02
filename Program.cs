@@ -28,8 +28,9 @@ namespace Automatic_Edge_Browser_Web_Searcher;
 
 class Program
 {
-    static readonly string[] LineSeparators = new[] { "\r", "\n" };
-
+    // Line 31: Simplify collection initialization
+    static readonly string[] LineSeparators = ["\r", "\n"];
+    
     private static string LogFilePath { get; set; } = string.Empty;
 
     private static void InitializeLogger()
@@ -69,12 +70,12 @@ class Program
                 return false;
 
             // Get Windows version information from registry
-            using (RegistryKey? registryKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
+using var registryKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
             {
                 if (registryKey != null)
                 {
                     // Get the major version number
-                    string? productName = registryKey.GetValue("ProductName") as string;
+                    if (registryKey.GetValue("ProductName") is string productName)
                     
                     // Check if it's Windows 10
                     return productName != null && productName.StartsWith("Windows 10");
@@ -88,7 +89,7 @@ class Program
         }
     }
 
-    static async Task Main(string[] args)
+    static async Task Main()
     {
         // Check if running on Windows 10
         if (!IsWindows10())
@@ -110,7 +111,7 @@ class Program
         Console.WriteLine("Installing Playwright browsers (msedge and chromium) with --force flag...");
         try
         {
-            var exitCode = Microsoft.Playwright.Program.Main(new[] { "install", "msedge", "chromium", "--force" });
+            var exitCode = Microsoft.Playwright.Program.Main(["install", "msedge", "chromium", "--force"]);
             if (exitCode != 0)
             {
                 Console.WriteLine("Failed to install browsers. Please ensure you have an active internet connection and try again.");
@@ -141,7 +142,7 @@ class Program
             Console.ReadKey(true);
             return;
         }
-            using (var reader = new StreamReader(stream))
+using var reader = new StreamReader(stream);
             {
                 allQueries = reader.ReadToEnd()
                     .Split(LineSeparators, StringSplitOptions.RemoveEmptyEntries)
@@ -304,12 +305,12 @@ class Program
                 {
                     using var playwright = await Playwright.CreateAsync();
                     // Use the temp profile directory as the profile for Playwright
-                    BrowserTypeLaunchPersistentContextOptions options = new BrowserTypeLaunchPersistentContextOptions
+                    var options = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = false, // Set to false to run in non-headless mode
                         Channel = "msedge",
-                        IgnoreDefaultArgs = new string[] { }, // Ignore Playwright's default arguments
-                        Args = new string[] { }
+                        IgnoreDefaultArgs = [], // Ignore Playwright's default arguments
+                        Args = []
                     };
 
                     Log($"Browser launch options: Headless={options.Headless}, Channel={options.Channel}, IgnoreDefaultArgs=[{string.Join(", ", options.IgnoreDefaultArgs)}], Args=[{string.Join(", ", options.Args)}]");
@@ -320,7 +321,7 @@ class Program
 
 
 
-                    var page = browserContext.Pages.FirstOrDefault() ?? await browserContext.NewPageAsync();
+                    var page = browserContext.Pages.Count > 0 ? browserContext.Pages[0] : await browserContext.NewPageAsync();
 
 
                     var unusedQueries = new List<string>(uniqueQueries);
@@ -450,32 +451,33 @@ class Program
     // Add a helper method to copy directories recursively
     static void DirectoryCopy(string sourceDir, string destDir, bool copySubDirs)
     {
-        DirectoryInfo dir = new DirectoryInfo(sourceDir);
+        var dir = new DirectoryInfo(sourceDir);
+        
         if (!dir.Exists)
-            throw new DirectoryNotFoundException($"Source directory does not exist: {sourceDir}");
-        DirectoryInfo[] dirs = dir.GetDirectories();
+            throw new DirectoryNotFoundException($"Source directory not found: {sourceDir}");
+
+        var dirs = dir.GetDirectories();
         Directory.CreateDirectory(destDir);
-        foreach (FileInfo file in dir.GetFiles())
+
+        foreach (var file in dir.GetFiles())
         {
-            string targetFilePath = Path.Combine(destDir, file.Name);
+            var targetFilePath = Path.Combine(destDir, file.Name);
             try
             {
                 file.CopyTo(targetFilePath, true);
             }
-            catch (IOException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine($"[Warning] Could not copy file '{file.FullName}': {ex.Message}");
-                    Console.ResetColor();
-                    // Let the exception bubble up for retry logic in Main
-                    throw;
-                }
+            catch (Exception ex) when (ex is FileNotFoundException || ex is UnauthorizedAccessException)
+            {
+                Console.WriteLine($"Error copying {file.FullName}: {ex.Message}");
+                throw;
+            }
         }
+
         if (copySubDirs)
         {
-            foreach (DirectoryInfo subdir in dirs)
+            foreach (var subdir in dirs)
             {
-                string targetSubDir = Path.Combine(destDir, subdir.Name);
+                var targetSubDir = Path.Combine(destDir, subdir.Name);
                 DirectoryCopy(subdir.FullName, targetSubDir, copySubDirs);
             }
         }
