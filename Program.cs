@@ -1,5 +1,5 @@
 ﻿// Version: 1.3.0
-// Last updated: 2023-06-01
+// Last updated: 2023-06-02
 /*
     Program.cs - Automatic Edge Browser Web Searcher
     ------------------------------------------------
@@ -309,92 +309,126 @@ using var reader = new StreamReader(stream);
                     {
                         Headless = false, // Set to false to run in non-headless mode
                         Channel = "msedge",
-                        IgnoreDefaultArgs = [], // Ignore Playwright's default arguments
-                        Args = []
+                        // Fix for Edge browser launch issues
+                        IgnoreDefaultArgs = ["--disable-component-update"],
+                        Args = [
+                            "--disable-features=ImprovedCookieControls,LazyFrameLoading,GlobalMediaControls,DestroyProfileOnBrowserClose,MediaRouter,AcceptCHFrame,AutoExpandDetailsElement",
+                            "--allow-pre-commit-input",
+                            "--disable-hang-monitor",
+                            "--disable-ipc-flooding-protection",
+                            "--disable-popup-blocking",
+                            "--disable-prompt-on-repost",
+                            "--disable-renderer-backgrounding",
+                            "--disable-sync",
+                            "--force-color-profile=srgb",
+                            "--metrics-recording-only",
+                            "--no-first-run",
+                            "--password-store=basic",
+                            "--use-mock-keychain",
+                            "--no-service-autorun"
+                        ]
                     };
 
                     Log($"Browser launch options: Headless={options.Headless}, Channel={options.Channel}, IgnoreDefaultArgs=[{string.Join(", ", options.IgnoreDefaultArgs)}], Args=[{string.Join(", ", options.Args)}]");
 
-                    var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
-                        userDataDir: tempProfileDir,
-                        options: options);
-
-
-
-                    var page = browserContext.Pages.Count > 0 ? browserContext.Pages[0] : await browserContext.NewPageAsync();
-
-
-                    var unusedQueries = new List<string>(uniqueQueries);
-                    for (int i = 0; i < searchCount; i++)
+                    try
                     {
-                        if (unusedQueries.Count == 0)
+                        var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
+                            userDataDir: tempProfileDir,
+                            options: options);
+
+                        var page = browserContext.Pages.Count > 0 ? browserContext.Pages[0] : await browserContext.NewPageAsync();
+
+
+                        var unusedQueries = new List<string>(uniqueQueries);
+                        for (int i = 0; i < searchCount; i++)
                         {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine("\nNo more unique queries left to use.");
-                            Console.ResetColor();
-                            break;
-                        }
-                        int idxQuery = rand.Next(unusedQueries.Count);
-                        string query = unusedQueries[idxQuery].TrimEnd(',', '"', ' ');
-                        unusedQueries.RemoveAt(idxQuery);
-
-                        Console.WriteLine($"Performing search {i + 1}/{searchCount}: {query}");
-
-                        int retryCount = 0;
-                        bool navigationSuccessful = false;
-
-                        while (retryCount < 3 && !navigationSuccessful) {
-                            try {
-                                await page.GotoAsync("https://www.bing.com", new PageGotoOptions { Timeout = 30000 }); // Navigate to Bing.com with increased timeout
-                                navigationSuccessful = true;
-                            } catch (Microsoft.Playwright.PlaywrightException ex) {
-                                retryCount++;
-                                Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.WriteLine($"[Retry {retryCount}] Playwright error during navigation: {ex.Message}");
-                                Console.ResetColor();
-                            } catch (Exception ex) {
+                            if (unusedQueries.Count == 0)
+                            {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine($"Unexpected error during navigation: {ex.Message}");
+                                Console.WriteLine("\nNo more unique queries left to use.");
                                 Console.ResetColor();
                                 break;
                             }
+                            int idxQuery = rand.Next(unusedQueries.Count);
+                            string query = unusedQueries[idxQuery].TrimEnd(',', '"', ' ');
+                            unusedQueries.RemoveAt(idxQuery);
+
+                            Console.WriteLine($"Performing search {i + 1}/{searchCount}: {query}");
+
+                            int retryCount = 0;
+                            bool navigationSuccessful = false;
+
+                            while (retryCount < 3 && !navigationSuccessful) {
+                                try {
+                                    await page.GotoAsync("https://www.bing.com", new PageGotoOptions { Timeout = 30000 }); // Navigate to Bing.com with increased timeout
+                                    navigationSuccessful = true;
+                                } catch (Microsoft.Playwright.PlaywrightException ex) {
+                                    retryCount++;
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine($"[Retry {retryCount}] Playwright error during navigation: {ex.Message}");
+                                    Console.ResetColor();
+                                } catch (Exception ex) {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine($"Unexpected error during navigation: {ex.Message}");
+                                    Console.ResetColor();
+                                    break;
+                                }
+                            }
+
+                            if (!navigationSuccessful) {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"Failed to navigate to Bing.com after {retryCount} retries. Skipping search.");
+                                Console.ResetColor();
+                                continue;
+                            }
+
+
+
+                            try {
+                                var searchBox = page.Locator("#sb_form_q");
+                                await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 30000 }); // Increased timeout to 30 seconds
+                                await searchBox.FillAsync("");
+                                await searchBox.FillAsync(query);
+                                await Task.Delay(rand.Next(100, 200));
+                                await searchBox.PressAsync("Enter");
+
+                                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                                await Task.Delay(3000);
+                            } catch (Exception ex) {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"Could not interact with Bing search box: {ex.Message}");
+                                Console.ResetColor();
+                                continue;
+                            }
+
                         }
 
-                        if (!navigationSuccessful) {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"Failed to navigate to Bing.com after {retryCount} retries. Skipping search.");
-                            Console.ResetColor();
-                            continue;
-                        }
+                        // Close the browser context after all searches are completed
+                        await browserContext.CloseAsync();
 
-
-
-                        try {
-                            var searchBox = page.Locator("#sb_form_q");
-                            await searchBox.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 30000 }); // Increased timeout to 30 seconds
-                            await searchBox.FillAsync("");
-                            await searchBox.FillAsync(query);
-                            await Task.Delay(rand.Next(100, 200));
-                            await searchBox.PressAsync("Enter");
-
-                            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                            await Task.Delay(3000);
-                        } catch (Exception ex) {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"Could not interact with Bing search box: {ex.Message}");
-                            Console.ResetColor();
-                            continue;
-                        }
-
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("\nAll searches completed successfully!");
+                        Console.ResetColor();
                     }
-
-                    // Close the browser context after all searches are completed
-                    await browserContext.CloseAsync();
-
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("\nAll searches completed successfully!");
-                    Console.ResetColor();
-                    
+                    catch (PlaywrightException ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"\nPlaywright error during browser launch: {ex.Message}");
+                        Console.WriteLine("This is likely due to issues with Edge browser launch parameters.");
+                        Console.WriteLine("Try running the application with administrator privileges or using a different Edge profile.");
+                        Log($"Playwright error: {ex.Message}\n{ex.StackTrace}");
+                        Console.ResetColor();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"\nUnexpected error during browser launch: {ex.Message}");
+                        Console.WriteLine("Browser logs: ");
+                        Console.WriteLine(ex.ToString());
+                        Log($"Unexpected error: {ex.Message}\n{ex.StackTrace}");
+                        Console.ResetColor();
+                    }
                     // If we got here, everything worked, so break out of the retry loop
                     break;
                 }
