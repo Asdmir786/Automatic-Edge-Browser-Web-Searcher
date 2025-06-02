@@ -38,17 +38,22 @@
    dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet run --project "Automatic Edge Browser Web Searcher.csproj"
    ```
 
-7. **Publish Single-File EXE**
+6.1. **Combined Code For Restore,Build and Publish**
+   ```powershell
+   dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=false --output .\publish-win64
+   ```
+
+7. **Publish EXE**
 
    * **For 64-bit Windows:**
 
      ```powershell
-     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=false --output .\publish-win64
+      dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=true -p:IncludePlaywrightBrowsers=true --output .\publish-win64
      ```
    * **For 32-bit Windows:**
 
      ```powershell
-     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x86 --output .\publish-win32
+     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x86 -p:PublishSingleFile=false --output .\publish-win32
      ```
 
 8. **Install Playwright Edge Browser**

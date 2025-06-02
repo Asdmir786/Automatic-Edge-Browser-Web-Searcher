@@ -1,5 +1,5 @@
 ﻿// Version: 1.3.0
-// Last updated: 2025-06-01
+// Last updated: 2023-06-01
 /*
     Program.cs - Automatic Edge Browser Web Searcher
     ------------------------------------------------
@@ -18,6 +18,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics; // Required for Environment.ProcessPath
+using System.Runtime.InteropServices; // Required for OperatingSystem class
+using Microsoft.Win32; // Required for Registry access
+
 
 
 namespace Automatic_Edge_Browser_Web_Searcher;
@@ -26,8 +30,82 @@ class Program
 {
     static readonly string[] LineSeparators = new[] { "\r", "\n" };
 
+    private static string LogFilePath { get; set; } = string.Empty;
+
+    private static void InitializeLogger()
+    {
+        string logFileName;
+        if (Debugger.IsAttached)
+        {
+            logFileName = "log_debug.txt";
+        }
+        else
+        {
+            logFileName = "log_publish.txt";
+        }
+        LogFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, logFileName);
+        Log($"Log file initialized at: {LogFilePath}");
+    }
+
+    private static void Log(string message)
+    {
+        try
+        {
+            File.AppendAllText(LogFilePath, $"{DateTime.Now}: {message}\n");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error writing to log file: {ex.Message}");
+        }
+    }
+
+    // Check if the current OS is Windows 10
+    private static bool IsWindows10()
+    {
+        try
+        {
+            // Check if we're running on Windows
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return false;
+
+            // Get Windows version information from registry
+            using (RegistryKey? registryKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion"))
+            {
+                if (registryKey != null)
+                {
+                    // Get the major version number
+                    string? productName = registryKey.GetValue("ProductName") as string;
+                    
+                    // Check if it's Windows 10
+                    return productName != null && productName.StartsWith("Windows 10");
+                }
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     static async Task Main(string[] args)
     {
+        // Check if running on Windows 10
+        if (!IsWindows10())
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("This application is designed to run only on Windows 10.");
+            Console.WriteLine("Please run this application on a Windows 10 operating system.");
+            Console.ResetColor();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+            return;
+        }
+
+        InitializeLogger(); // Call at the very beginning of Main
+
+        Log("Application started.");
+
         // Install Playwright browsers if needed
         Console.WriteLine("Installing Playwright browsers (msedge and chromium) with --force flag...");
         try
@@ -226,13 +304,21 @@ class Program
                 {
                     using var playwright = await Playwright.CreateAsync();
                     // Use the temp profile directory as the profile for Playwright
+                    BrowserTypeLaunchPersistentContextOptions options = new BrowserTypeLaunchPersistentContextOptions
+                    {
+                        Headless = false, // Set to false to run in non-headless mode
+                        Channel = "msedge",
+                        IgnoreDefaultArgs = new string[] { }, // Ignore Playwright's default arguments
+                        Args = new string[] { }
+                    };
+
+                    Log($"Browser launch options: Headless={options.Headless}, Channel={options.Channel}, IgnoreDefaultArgs=[{string.Join(", ", options.IgnoreDefaultArgs)}], Args=[{string.Join(", ", options.Args)}]");
+
                     var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
                         userDataDir: tempProfileDir,
-                        options: new BrowserTypeLaunchPersistentContextOptions
-                        {
-                            Headless = false, // Enable headless mode
-                            Channel = "msedge"
-                        });
+                        options: options);
+
+
 
                     var page = browserContext.Pages.FirstOrDefault() ?? await browserContext.NewPageAsync();
 
@@ -299,8 +385,10 @@ class Program
                             continue;
                         }
 
-                        await browserContext.CloseAsync();
                     }
+
+                    // Close the browser context after all searches are completed
+                    await browserContext.CloseAsync();
 
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine("\nAll searches completed successfully!");
@@ -347,34 +435,17 @@ class Program
             Console.ReadKey(true);
             Console.ResetColor();
         }
+
+        Console.WriteLine("\nPress any key to exit.");
+        Console.ReadKey(true);
     }
 
     static string GetEdgeUserDataDir()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-
-                "Microsoft", "Edge", "User Data");
-        }
-
-        else if (OperatingSystem.IsMacOS())
-        {
-            return Path.Combine(
-
-                Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-
-                "Library", "Application Support", "Microsoft Edge");
-        }
-        else // Linux
-        {
-            return Path.Combine(
-
-                Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-
-                ".config", "microsoft-edge");
-        }
+        // Windows 10 only implementation
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Microsoft", "Edge", "User Data");
     }
     // Add a helper method to copy directories recursively
     static void DirectoryCopy(string sourceDir, string destDir, bool copySubDirs)
