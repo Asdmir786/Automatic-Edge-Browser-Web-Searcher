@@ -40,7 +40,7 @@
 
 6.1. **Combined Code For Restore,Build and Publish**
    ```powershell
-   dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=false --output .\publish-win64
+   dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=false -p:IncludePlaywrightBrowsers=true --output .\publish-win64
    ```
 
 7. **Publish EXE**

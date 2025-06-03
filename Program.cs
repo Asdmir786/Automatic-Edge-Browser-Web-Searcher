@@ -1,5 +1,5 @@
-﻿// Version: 1.3.0
-// Last updated: 2023-06-02
+﻿// Version: 1.4.0
+// Last updated: 2023-06-04
 /*
     Program.cs - Automatic Edge Browser Web Searcher
     ------------------------------------------------
@@ -18,6 +18,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+// using Microsoft.Playwright.MsEdge; // Removed as it's not needed for MsEdge channel
 using System.Diagnostics; // Required for Environment.ProcessPath
 using System.Runtime.InteropServices; // Required for OperatingSystem class
 using Microsoft.Win32; // Required for Registry access
@@ -111,22 +112,72 @@ using var registryKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Wi
         Console.WriteLine("Installing Playwright browsers (msedge and chromium) with --force flag...");
         try
         {
+            Log("Attempting to install Playwright browsers...");
+            // Check if we're running as a published executable
+            bool isPublishedExe = !Debugger.IsAttached && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR"));
+            
+            if (isPublishedExe)
+            {
+                Log("Running as published executable. Setting up Playwright environment.");
+                // Get the executable directory
+                string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                string exeDir = Path.GetDirectoryName(exePath) ?? "";
+                Log($"Executable directory: {exeDir}");
+                
+                // Set the PLAYWRIGHT_BROWSERS_PATH environment variable
+                string browsersPath = Path.Combine(exeDir, ".playwright");
+                Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", browsersPath);
+                Log($"Set PLAYWRIGHT_BROWSERS_PATH to: {browsersPath}");
+                
+                // Create the browsers directory if it doesn't exist
+                if (!Directory.Exists(browsersPath))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(browsersPath);
+                        Log($"Created browsers directory: {browsersPath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Error creating browsers directory: {ex.Message}");
+                    }
+                }
+            }
+            
+            // Install Playwright browsers
+            Log("Starting Playwright browsers installation...");
             var exitCode = Microsoft.Playwright.Program.Main(["install", "msedge", "chromium", "--force"]);
+            Log($"Playwright installation completed with exit code: {exitCode}");
+            
             if (exitCode != 0)
             {
-                Console.WriteLine("Failed to install browsers. Please ensure you have an active internet connection and try again.");
-                Console.WriteLine("Press Enter to exit.");
-                Console.ReadLine();
-                Environment.Exit(exitCode);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Failed to install Playwright browsers. Exit code: {exitCode}");
+                Console.WriteLine("Please try running the application with administrator privileges.");
+                if (isPublishedExe)
+                {
+                    Console.WriteLine("For published executable, you may need to manually install browsers:");
+                    Console.WriteLine("1. Open command prompt as administrator");
+                    Console.WriteLine("2. Navigate to the directory containing this executable");
+                    Console.WriteLine("3. Run: playwright.ps1 install");
+                }
+                Console.ResetColor();
+                Console.WriteLine("Press any key to exit...");
+                Console.ReadKey();
+                return;
             }
             Console.WriteLine("Playwright browsers (msedge and chromium) installation completed.");
+            Log("Browser installation completed successfully.");
         }
         catch (Exception ex)
         {
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Error during browser installation: {ex.Message}");
-            Console.WriteLine("Press Enter to exit.");
-            Console.ReadLine();
-            Environment.Exit(1);
+            Log($"Browser installation error: {ex.Message}\n{ex.StackTrace}");
+            Console.ResetColor();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+            return;
         }
 
         // Load queries from embedded resource
@@ -308,10 +359,11 @@ using var reader = new StreamReader(stream);
                     var options = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = false, // Set to false to run in non-headless mode
-                        Channel = "msedge",
+                        Channel = "msedge", // Re-added to use Playwright's self-installed Edge browser
                         // Fix for Edge browser launch issues
-                        IgnoreDefaultArgs = ["--disable-component-update"],
+                        IgnoreDefaultArgs = ["--disable-component-update", "--disable-extensions"],
                         Args = [
+                            "--no-sandbox", // Add no-sandbox flag to fix permission issues
                             "--disable-features=ImprovedCookieControls,LazyFrameLoading,GlobalMediaControls,DestroyProfileOnBrowserClose,MediaRouter,AcceptCHFrame,AutoExpandDetailsElement",
                             "--allow-pre-commit-input",
                             "--disable-hang-monitor",
@@ -329,14 +381,56 @@ using var reader = new StreamReader(stream);
                         ]
                     };
 
+                    // Check if we're running as a published executable and add additional options if needed
+                    bool isPublishedExe = !Debugger.IsAttached && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR"));
+                    if (isPublishedExe)
+                    {
+                        Log("Running as published executable. Adding additional browser launch options.");
+                        // Add executable-specific options
+                        options.Args = options.Args.Concat([
+                            "--disable-dev-shm-usage",
+                            "--disable-gpu",
+                            "--disable-setuid-sandbox",
+                            "--no-first-run",
+                            "--no-zygote"
+                        ]).ToArray();
+                        
+                        // Get the executable directory
+                        string exePath = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                        string exeDir = Path.GetDirectoryName(exePath) ?? "";
+                        Log($"Executable directory: {exeDir}");
+                        
+                        // Set the PLAYWRIGHT_BROWSERS_PATH environment variable
+                        string browsersPath = Path.Combine(exeDir, ".playwright");
+                        Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", browsersPath);
+                        Log($"Set PLAYWRIGHT_BROWSERS_PATH to: {browsersPath}");
+                        
+                        // Create the browsers directory if it doesn't exist
+                        if (!Directory.Exists(browsersPath))
+                        {
+                            try
+                            {
+                                Directory.CreateDirectory(browsersPath);
+                                Log($"Created browsers directory: {browsersPath}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log($"Error creating browsers directory: {ex.Message}");
+                            }
+                        }
+                    }
+
                     Log($"Browser launch options: Headless={options.Headless}, Channel={options.Channel}, IgnoreDefaultArgs=[{string.Join(", ", options.IgnoreDefaultArgs)}], Args=[{string.Join(", ", options.Args)}]");
 
                     try
                     {
+                        Log("Attempting to launch browser with persistent context...");
+                        
                         var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(
                             userDataDir: tempProfileDir,
                             options: options);
 
+                        Log("Browser launched successfully.");
                         var page = browserContext.Pages.Count > 0 ? browserContext.Pages[0] : await browserContext.NewPageAsync();
 
 
@@ -415,9 +509,11 @@ using var reader = new StreamReader(stream);
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine($"\nPlaywright error during browser launch: {ex.Message}");
+                        Console.WriteLine("Browser logs: ");
+                        Console.WriteLine(ex.ToString());
+                        Log($"Playwright error: {ex.Message}\n{ex.StackTrace}");
                         Console.WriteLine("This is likely due to issues with Edge browser launch parameters.");
                         Console.WriteLine("Try running the application with administrator privileges or using a different Edge profile.");
-                        Log($"Playwright error: {ex.Message}\n{ex.StackTrace}");
                         Console.ResetColor();
                     }
                     catch (Exception ex)
