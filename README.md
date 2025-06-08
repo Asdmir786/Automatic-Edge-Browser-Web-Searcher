@@ -55,12 +55,13 @@ python main.py
 
 ```
 Automatic-Edge-Browser-Web-Searcher/
-├── main.py              # Main application script
-├── requirements.txt     # Python dependencies
-├── setup.py            # Automated setup script
-├── queries.txt         # Search queries (700+ included)
-├── README.md           # This file
-└── logs/               # Generated log files
+└── src/
+    ├── main.py              # Main application script
+    ├── process_killer.py    # Utility to kill processes locking files
+    ├── requirements.txt     # Python dependencies
+    ├── setup.py             # Automated setup script
+    ├── queries.txt          # Search queries (700+ included)
+    └── README.md            # Documentation file
 ```
 
 ## 🔧 Configuration
@@ -79,6 +80,20 @@ The application automatically:
 2. **Lists** them for user selection
 3. **Creates** temporary copies to avoid conflicts
 4. **Uses** persistent browser context
+
+### Process Killer Utility
+
+If you encounter file locking issues (WinError 32) during profile copying, use the included `process_killer.py` utility:
+
+```bash
+python src/process_killer.py Cookies
+```
+
+This utility will:
+1. **Find** processes locking the specified file (e.g., "Cookies")
+2. **List** them with their PIDs and names
+3. **Allow** you to safely terminate the locking process
+4. **Require** administrator privileges (auto-elevates if needed)
 
 ## 🖥️ Platform Support
 

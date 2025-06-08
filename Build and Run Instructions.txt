@@ -93,6 +93,15 @@ Depending on your system configuration, you might need to use:
 - Run terminal as administrator
 - Close all Edge browser windows
 
+**"WinError 32" or "File is being used by another process"**
+- Use the included process_killer.py utility:
+  ```bash
+  python src/process_killer.py Cookies
+  ```
+- Replace "Cookies" with the name of the locked file (e.g., History, Login Data)
+- Follow the prompts to identify and terminate the locking process
+- Run as administrator for full functionality
+
 ### Debug Mode:
 ```bash
 python main.py  # Shows detailed logs
