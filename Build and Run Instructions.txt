@@ -1,87 +1,96 @@
-# How to Build a Standalone EXE for Automatic Edge Browser Web Searcher
+# How to Setup and Run Automatic Edge Browser Web Searcher (Python)
 
-1. **Open PowerShell** in your project directory.
+## Prerequisites
 
-2. **Restore Dependencies**
+1. **Python 3.8+** installed (recommended: Python 3.13.4+)
+2. **Microsoft Edge browser** installed
+3. **Internet connection** for downloading dependencies
 
-   ```powershell
-   dotnet restore "Automatic Edge Browser Web Searcher.csproj"
+## Quick Setup (Recommended)
+
+1. **Open Terminal/PowerShell** in your project directory
+
+2. **Run the automated setup script:**
+   ```bash
+   python setup.py
    ```
 
-3. **Build Locally**
-
-   ```powershell
-   dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release
+3. **Run the application:**
+   ```bash
+   python main.py
    ```
 
-4. **Run Smoke Tests**
+## Manual Setup
 
-   * If you have unit/integration tests:
+If the automated setup doesn't work:
 
-     ```powershell
-     dotnet test
-     ```
-   * Or run the console app to verify behavior:
-
-     ```powershell
-     dotnet run --project "Automatic Edge Browser Web Searcher.csproj"
-     ```
-
-5. **Clean Previous Publish Output**
-
-   ```powershell
-   rm .\publish-*\ -Force
+1. **Install Python Dependencies**
+   ```bash
+   pip install -r requirements.txt
    ```
 
-6. **Combined Code For Restore, Build and Run**
-   ```powershell
-   dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet run --project "Automatic Edge Browser Web Searcher.csproj"
+2. **Install Playwright Edge Browser**
+   ```bash
+   playwright install msedge
    ```
 
-6.1. **Combined Code For Restore,Build and Publish**
-   ```powershell
-   dotnet restore "Automatic Edge Browser Web Searcher.csproj"; dotnet build "Automatic Edge Browser Web Searcher.csproj" -c Release; dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 -p:PublishSingleFile=false -p:IncludePlaywrightBrowsers=true --output .\publish-win64
+3. **Run the Application**
+   ```bash
+   python main.py
    ```
 
-7. **Publish EXE**
+## Alternative Python Commands
 
-   * **For 64-bit Windows:**
+Depending on your system configuration, you might need to use:
 
-     ```powershell
-   # Updated publish command for 64-bit Windows
-   dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x64 `
-   -p:PublishSingleFile=true `
-   -p:IncludePlaywrightBrowsers=true `
-   -p:IncludeAllContentForSelfExtract=true `
-   -p:DebugType=embedded `
-   --output .\publish-win64
-      ```
-   * **For 32-bit Windows:**
+- **Windows:** `py main.py` or `python3 main.py`
+- **macOS/Linux:** `python3 main.py`
 
-     ```powershell
-     dotnet publish "Automatic Edge Browser Web Searcher.csproj" -c Release -r win-x86 -p:PublishSingleFile=false --output .\publish-win32
-     ```
+## Virtual Environment (Optional but Recommended)
 
-8. **Install Playwright Edge Browser**
-
-   * **For 64-bit Windows:**
-
-     ```powershell
-     cd .\publish-win64
-     ./playwright.ps1 install --force msedge
-     ```
-   * **For 32-bit Windows:**
-
-     ```powershell
-     cd .\publish-win32
-     ./playwright.ps1 install --force msedge
-     ```
-
-9. **Smoke-Run the Published EXE**
-
-   ```powershell
-   cd publish
-    & '.\Automatic Edge Browser Web Searcher.exe'
+1. **Create virtual environment:**
+   ```bash
+   python -m venv venv
    ```
+
+2. **Activate virtual environment:**
+   - **Windows:** `venv\Scripts\activate`
+   - **macOS/Linux:** `source venv/bin/activate`
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   playwright install msedge
+   ```
+
+4. **Run application:**
+   ```bash
+   python main.py
+   ```
+
+## Troubleshooting
+
+### Common Issues:
+
+**"python is not recognized"**
+- Install Python from python.org
+- Add Python to your system PATH
+
+**"playwright not found"**
+- Run: `pip install playwright`
+- Then: `playwright install msedge`
+
+**"No Edge profiles found"**
+- Ensure Microsoft Edge is installed
+- Run Edge at least once to create a profile
+
+**Permission errors**
+- Run terminal as administrator
+- Close all Edge browser windows
+
+### Debug Mode:
+```bash
+python main.py  # Shows detailed logs
+```
 
 ---
