@@ -1,0 +1,10 @@
+# Automatic Edge Browser Web Searcher - Python Dependencies
+# Version: 2.0.0
+# Compatible with Python 3.13.4+
+
+# Core automation library
+playwright>=1.52.0
+
+# Additional utilities (optional but recommended)
+colorama>=0.4.6  # Enhanced cross-platform colored terminal output
+psutil>=5.9.0    # System and process utilities
