@@ -142,7 +142,7 @@ The application includes robust error handling for:
 **"Playwright not installed"**
 ```bash
 pip install playwright
-playwright install msedge
+playwright install
 ```
 
 **"No Edge profiles found"**

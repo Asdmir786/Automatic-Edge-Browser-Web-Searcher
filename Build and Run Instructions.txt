@@ -34,7 +34,7 @@ If the automated setup doesn't work:
 
 2. **Install Playwright Edge Browser**
    ```bash
-   playwright install msedge
+   playwright install 
    ```
 
 3. **Run the Application**
@@ -64,7 +64,7 @@ Depending on your system configuration, you might need to use:
 3. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
-   playwright install msedge
+   playwright install 
    ```
 
 4. **Run application:**
@@ -83,7 +83,7 @@ Depending on your system configuration, you might need to use:
 
 **"playwright not found"**
 - Run: `pip install playwright`
-- Then: `playwright install msedge`
+- Then: `playwright install`
 
 **"No Edge profiles found"**
 - Ensure Microsoft Edge is installed
