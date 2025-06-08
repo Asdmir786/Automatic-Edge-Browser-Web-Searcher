@@ -20,7 +20,7 @@ This Python application automates Microsoft Edge browser searches using Playwrig
 
 ### Prerequisites
 
-- **Python 3.8+** (recommended: Python 3.13.4+)
+- **Python 3.9+** (recommended: Python 3.13.4+)
 - **Microsoft Edge browser** installed
 - **Internet connection** for Playwright browser installation
 
