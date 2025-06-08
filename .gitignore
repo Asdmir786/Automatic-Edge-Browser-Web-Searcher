@@ -5,3 +5,4 @@ publish-*/
 backup/*
 build-*/
 .vscode/
+venv/

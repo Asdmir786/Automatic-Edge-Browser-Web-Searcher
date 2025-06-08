@@ -6,6 +6,8 @@
 2. **Microsoft Edge browser** installed
 3. **Internet connection** for downloading dependencies
 
+> **Important:** You will need to run the Python file as an administrator. This is required for proper operation, especially when launching or controlling the Edge browser.
+
 ## Quick Setup (Recommended)
 
 1. **Open Terminal/PowerShell** in your project directory
@@ -19,6 +21,7 @@
    ```bash
    python main.py
    ```
+   > **Note:** Make sure to run your terminal as administrator before executing this command.
 
 ## Manual Setup
 
@@ -38,6 +41,7 @@ If the automated setup doesn't work:
    ```bash
    python main.py
    ```
+   > **Note:** Make sure to run your terminal as administrator before executing this command.
 
 ## Alternative Python Commands
 
@@ -67,6 +71,7 @@ Depending on your system configuration, you might need to use:
    ```bash
    python main.py
    ```
+   > **Note:** Make sure to run your terminal as administrator before executing this command.
 
 ## Troubleshooting
 
