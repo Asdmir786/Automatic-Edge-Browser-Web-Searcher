@@ -1,7 +1,5 @@
 # 🔍 Automatic Edge Browser Web Searcher (Python)
 
-**Version 2.0.0** - Modern Python implementation with cross-platform support
-
 ## 📋 Overview
 
 This Python application automates Microsoft Edge browser searches using Playwright. It loads search queries from a text file, removes duplicates, and performs random Bing searches with human-like behavior simulation.
