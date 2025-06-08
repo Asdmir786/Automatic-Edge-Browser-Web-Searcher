@@ -323,7 +323,7 @@ class EdgeSearcher:
 
                     # Ask for usage method
                     while True:
-                        choice = input(f"{Colors.CYAN}Use profile directly (D) or create temporary copy? (C) [D/c]: {Colors.RESET}").strip().lower()
+                        choice = input(f"{Colors.CYAN}Use profile directly (D) or create temporary copy? (C) [D/C]: {Colors.RESET}").strip().lower()
                         if choice in ['d', '', 'direct']:
                             use_direct = True
                             break
@@ -331,7 +331,8 @@ class EdgeSearcher:
                             use_direct = False
                             break
                         else:
-                            print(f"{Colors.RED}❌ Invalid choice - please enter D/d or C/c{Colors.RESET}")
+                            use_direct = True
+                            print(f"{Colors.BLUE}Using Profile directly as default{Colors.RESET}")
 
                     # Get search count
                     while True:
@@ -358,6 +359,49 @@ class EdgeSearcher:
         print(f"  🐍 Python {sys.version.split()[0]} | {system} {version}")
         print(f"{'═' * 70}{Colors.RESET}\n")
     
+    async def _check_login_status(self, page: Page) -> bool:
+        """Check if user is logged in to Bing by looking for the Sign in button."""
+        try:
+            # Look for the sign in button with the specific selector
+            sign_in_button = page.locator("#id_l")
+            sign_in_text = page.locator("#id_s")
+            
+            # Check if sign in button exists and contains "Sign in" text
+            if await sign_in_button.count() > 0:
+                text_content = await sign_in_text.text_content()
+                return text_content and "Sign in" not in text_content
+            
+            return True  # If button doesn't exist, assume logged in
+            
+        except Exception as e:
+            self.logger.warning(f"Could not check login status: {e}")
+            return True  # Assume logged in if we can't check
+    
+    async def _wait_for_login(self, page: Page) -> bool:
+        """Wait for user to log in to Bing."""
+        print(f"\n{Colors.YELLOW}🔒 Please log in to your Microsoft account in the browser window.{Colors.RESET}")
+        print(f"{Colors.CYAN}   Waiting for login completion...{Colors.RESET}")
+        
+        check_count = 0
+        while True:
+            try:
+                if await self._check_login_status(page):
+                    print(f"\n{Colors.GREEN}✓ Login detected! Continuing with searches...{Colors.RESET}")
+                    return True
+                
+                check_count += 1
+                if check_count % 10 == 0:  # Show message every 10 seconds
+                    print(f"{Colors.CYAN}   Still waiting for login... ({check_count} seconds){Colors.RESET}")
+                
+                await asyncio.sleep(1)  # Check every second
+                
+            except KeyboardInterrupt:
+                print(f"\n{Colors.RED}❌ Login wait cancelled by user.{Colors.RESET}")
+                return False
+            except Exception as e:
+                self.logger.error(f"Error while waiting for login: {e}")
+                return False
+
     async def _perform_search(self, page: Page, query: str, search_num: int, total: int) -> bool:
         """Perform a single search with human-like behavior."""
         print(f"{Colors.BLUE}🔍 Search {search_num}/{total}: {query[:50]}{'...' if len(query) > 50 else ''}{Colors.RESET}")
@@ -449,6 +493,24 @@ class EdgeSearcher:
                 
                 # Get or create page
                 page = browser.pages[0] if browser.pages else await browser.new_page()
+                
+                # Navigate to Bing first to check login status
+                print(f"{Colors.CYAN}🌐 Navigating to Bing to check login status...{Colors.RESET}")
+                try:
+                    await page.goto("https://www.bing.com", timeout=30000)
+                    await page.wait_for_load_state("networkidle", timeout=10000)
+                except Exception as e:
+                    self.logger.error(f"Failed to navigate to Bing: {e}")
+                    print(f"{Colors.RED}❌ Could not access Bing. Please check your internet connection.{Colors.RESET}")
+                    return
+                
+                # Check if user needs to log in
+                if not await self._check_login_status(page):
+                    if not await self._wait_for_login(page):
+                        print(f"{Colors.RED}❌ Login required but not completed. Exiting.{Colors.RESET}")
+                        return
+                
+                print(f"{Colors.GREEN}✓ Ready to start searches!{Colors.RESET}")
                 
                 # Perform searches
                 available_queries = self.queries.copy()
