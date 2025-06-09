@@ -401,22 +401,33 @@ class EdgeSearcher:
         if not selected_profile:
             return
         self.use_direct_profile = use_direct
-        # Create temp profile
+        # Prepare Edge user data and profile directory
+        edge_data_dir = self._get_edge_user_data_dir()  # parent "User Data" folder
+        if edge_data_dir is None or not edge_data_dir.exists():
+            print(f"{Colors.RED}❌ Could not locate Edge User Data dir: {edge_data_dir}{Colors.RESET}")
+            return
+
+        # (Optional) still create temp copy if isolation is needed
         try:
             temp_profile = self._copy_profile_safely(selected_profile)
         except Exception as e:
             print(f"{Colors.RED}❌ Failed to create profile copy: {e}{Colors.RESET}")
             return
+
+        # Choose real User Data instead of copy for login persistence
+        user_data_arg = str(edge_data_dir)
+        profile_dir_arg = f"--profile-directory={selected_profile.name}"
         print(f"\n{Colors.MAGENTA}🚀 Starting {search_count} searches...{Colors.RESET}\n")
         # Start Playwright automation
         async with async_playwright() as p:
             try:
                 # Launch browser with Edge
                 browser = await p.chromium.launch_persistent_context(
-                    user_data_dir=str(temp_profile),
+                    user_data_dir=user_data_arg,       # ← point at real User Data folder
                     headless=False,
                     channel="msedge",
                     args=[
+                        profile_dir_arg,                # ← select the chosen profile
                         "--no-sandbox",
                         "--disable-features=ImprovedCookieControls,LazyFrameLoading",
                         "--disable-hang-monitor",
