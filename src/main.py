@@ -90,7 +90,7 @@ class EdgeSearcher:
 
     def _setup_logging(self) -> logging.Logger:
         """Set up logging configuration."""
-        log_filename = "log_debug.txt" if __debug__ else "log_release.txt"
+        log_filename = "log.txt"
         log_path = Path.cwd() / log_filename
         logging.basicConfig(
             level=logging.INFO,

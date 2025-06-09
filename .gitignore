@@ -6,4 +6,4 @@ backup/*
 build-*/
 .vscode/
 venv/
-log_*.txt
+log*.txt
