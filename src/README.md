@@ -7,6 +7,12 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 ## 📋 Prerequisites
 
 * **OS:** Windows 10 or higher
+* **Edge Browser:** Version 109.0.1518.78 or higher
+* **Python Libraries:** psutil is needed, you can install it with:
+
+  ```bash
+  pip install psutil
+  ```
 * **Python:** Version 3.9+ (Python 3.13.4 most recommended). When installing Python:
 
   * Run the installer with **Administrator privileges** (to configure `py.exe`).
@@ -24,12 +30,7 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
    ```powershell
    cd C:\path\to\edge-searcher
    ```
-3. **Install Python dependencies**:
-
-   ```powershell
-   pip install -r requirements.txt
-   ```
-4. **Run the setup script** to install any missing dependencies and Playwright browsers:
+3. **Run the setup script** to install any missing dependencies and Playwright browsers:
 
    ```powershell
    python setup.py
