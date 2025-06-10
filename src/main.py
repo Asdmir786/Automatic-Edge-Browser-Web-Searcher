@@ -400,6 +400,20 @@ class EdgeSearcher:
         selected_profile, use_direct, search_count = self._select_profile()
         if not selected_profile:
             return
+        # -------------------------------------------------
+        # 🚫 Kill any existing Edge instances to avoid
+        # locked-profile errors when launching Playwright
+        for proc in psutil.process_iter(['pid', 'name']):
+            name = proc.info.get('name', '').lower()
+            if name.startswith('msedge'):
+                try:
+                    proc.terminate()
+                except psutil.AccessDenied:
+                    self.logger.warning(f"Could not terminate Edge process PID={proc.pid}")
+        # give OS a moment to clean up
+        await asyncio.sleep(2)
+        # -------------------------------------------------
+
         self.use_direct_profile = use_direct
         # Prepare Edge user data and profile directory
         edge_data_dir = self._get_edge_user_data_dir()  # parent "User Data" folder
