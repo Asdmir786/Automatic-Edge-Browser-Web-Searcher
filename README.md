@@ -18,38 +18,30 @@ This Python application automates Microsoft Edge browser searches using Playwrig
 
 ## 🚀 Quick Start
 
-### Prerequisites
+To get started quickly, follow these steps:
 
-- **Python 3.9+** (recommended: Python 3.13.4+)
-- **Microsoft Edge browser** installed
-- **Internet connection** for Playwright browser installation
+1. **Install Python 3.9+** (if you don't already have it). Ensure `python` is on your PATH.
+2. **Download or clone** this repository.
+3. **Open an elevated terminal** (Administrator on Windows, or a root-privileged shell on Linux/macOS) inside the project folder.
+4. **Run the automated setup script**:
 
-### Installation
-
-1. **Clone or download** this repository
-2. **Navigate** to the project directory
-3. **Run the setup script**:
    ```bash
    python setup.py
    ```
 
-### Manual Installation
+   The script WILL:
+   • create a dedicated virtual environment (`.venv`)
+   • install every required Python package
+   • download Playwright's Edge browser build
+   • verify administrator privileges
 
-If the setup script doesn't work:
+5. When it finishes, **activate the virtual environment** as instructed on-screen, then start the program:
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+   ```bash
+   python main.py
+   ```
 
-# Install Playwright Edge browser
-playwright install msedge
-```
-
-### Usage
-
-```bash
-python main.py
-```
+That's it — the setup script downloads the browser build and installs every dependency for you, so no additional manual steps are needed.
 
 ## 📁 Project Structure
 
