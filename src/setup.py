@@ -84,18 +84,13 @@ def detect_shell():
 
 def print_activation_instructions(venv_dir):
     """Print manual activation instructions based on detected shell."""
-    shell = detect_shell()
     print("\n🎉 Setup completed!")
-    if shell in ('powershell.exe', 'pwsh.exe'):
-        cmd = f". {venv_dir}/Scripts/Activate.ps1"
-        note = "# Then run: python main.py"
-    else:
-        cmd = f"{venv_dir}\\Scripts\\activate.bat"
-        note = "REM Then run: python main.py"
+    cmd = f"{venv_dir}\\Scripts\\activate.bat"
+    note = f"Then run: {Fore.GREEN} python main.py {Fore.RESET} or {Fore.GREEN} python3 main.py {Fore.RESET} or {Fore.GREEN} py main.py {Fore.RESET} (depending on your system)"
 
     # Colored output if available
     if Fore:
-        print(Fore.GREEN + "To activate your virtual environment, run:")
+        print(Fore.BLUE + "To activate your virtual environment, run:")
         print(Fore.GREEN + cmd)
         print(Fore.YELLOW + note)
     else:

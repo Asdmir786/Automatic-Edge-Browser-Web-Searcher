@@ -29,10 +29,12 @@ import random
 import shutil
 import sys
 import ctypes  # Added for admin check
+import builtins  # Added for input override
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 import psutil  # For process management
+from types import MethodType
 
 # --- Admin Check and Relaunch Logic (Windows Only) ---
 def is_admin() -> bool:
@@ -83,6 +85,7 @@ class EdgeSearcher:
     """Main class for automating Edge browser searches."""
     def __init__(self):
         self.logger = self._setup_logging()
+        self._setup_io_logging()
         self.queries: List[str] = []
         self.edge_profiles: List[Path] = []
         self.selected_profile: Optional[Path] = None
@@ -97,12 +100,50 @@ class EdgeSearcher:
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.FileHandler(log_path, encoding='utf-8'),
-                logging.StreamHandler()
+                # StreamHandler removed to avoid duplicate console output; console already shows prints
             ]
         )
         logger = logging.getLogger(__name__)
         logger.info(f"Log file initialized at: {log_path}")
         return logger
+
+    def _setup_io_logging(self) -> None:
+        """Redirect stdout/stderr and wrap input so all interaction is written to the logger."""
+
+        class _StreamToLogger:
+            """File-like object that replicates writes to the original stream **and** to logger."""
+
+            def __init__(self, logger: logging.Logger, level: int, orig_stream):
+                self.logger = logger
+                self.level = level
+                self.orig_stream = orig_stream
+
+            def write(self, message: str):
+                if self.orig_stream:
+                    self.orig_stream.write(message)
+                message_stripped = message.rstrip()
+                if message_stripped:
+                    # Avoid logging empty strings caused by newlines
+                    self.logger.log(self.level, message_stripped)
+
+            def flush(self):
+                if self.orig_stream:
+                    self.orig_stream.flush()
+
+        # Replace stdout/stderr so every print() goes through logger too
+        sys.stdout = _StreamToLogger(self.logger, logging.INFO, sys.__stdout__)
+        sys.stderr = _StreamToLogger(self.logger, logging.ERROR, sys.__stderr__)
+
+        # Wrap the built-in input so that the prompt and the response are logged
+        original_input = builtins.input
+
+        def logged_input(prompt: str = "") -> str:  # type: ignore[override]
+            response = original_input(prompt)
+            # Log prompt and what the user typed (do **not** strip response so we keep exact input)
+            self.logger.info(f"{prompt}{response}")
+            return response
+
+        builtins.input = logged_input
 
     def _detect_os_version(self) -> Tuple[str, str]:
         """Detect operating system and version using modern Python methods."""
@@ -280,7 +321,7 @@ class EdgeSearcher:
                     print(f"\n{Colors.GREEN}✓ Selected profile: {selected.name}{Colors.RESET}")
                     # Ask for usage method
                     while True:
-                        choice = input(f"{Colors.CYAN}Use profile directly (D) or create temporary copy? (C) [D/C]: {Colors.RESET}").strip().lower()
+                        choice = input(f"{Colors.CYAN}Use profile directly (D) or create temporary copy? (C) [D]: {Colors.RESET}").strip().lower()
                         if choice in ['d', '', 'direct']:
                             use_direct = True
                             print(f"{Colors.BLUE}Using Profile directly.{Colors.RESET}")

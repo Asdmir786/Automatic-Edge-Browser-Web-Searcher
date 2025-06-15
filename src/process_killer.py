@@ -27,8 +27,9 @@ def find_and_kill_locking_process(file_name_to_check):
     found_processes = []
     for proc in psutil.process_iter(['pid', 'name', 'open_files']):
         try:
-            if proc.info['open_files']:
-                for f in proc.info['open_files']():
+            open_files = proc.info.get('open_files') or []
+            if open_files:
+                for f in open_files:
                     if file_name_to_check.lower() in f.path.lower():
                         found_processes.append(proc)
                         break # Found the file in this process, move to next process
