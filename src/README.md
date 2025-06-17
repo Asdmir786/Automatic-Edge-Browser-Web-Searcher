@@ -1,4 +1,4 @@
-# 🚀 Automatic Edge Browser Web Searcher (v1.5.0)
+# 🚀 Automatic Edge Browser Web Searcher (v1.6.0)
 
 A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Includes helper scripts for setup and unlocking locked profile files.
 
