@@ -2,8 +2,8 @@
 """
 Automatic Edge Browser Web Searcher - Python Version
 ==================================================
-Version: 2.1.1
-Last updated: 2025-06-09
+Version: 1.5.0
+Last updated: 2025-06-15
 This Python application automates Microsoft Edge browser searches using Playwright.
 It loads search queries from queries.txt, removes duplicates, and performs a specified
 number of random Bing searches. The program simulates human-like typing and delays,
@@ -469,6 +469,9 @@ class EdgeSearcher:
             print(f"{Colors.RED}❌ Failed to create profile copy: {e}{Colors.RESET}")
             return
 
+        # Track whether we should delete temp_profile later
+        should_cleanup_temp = (not self.use_direct_profile) and temp_profile is not None and temp_profile.exists()
+
         # Choose real User Data instead of copy for login persistence
         user_data_arg = str(edge_data_dir)
         profile_dir_arg = f"--profile-directory={selected_profile.name}"
@@ -531,6 +534,16 @@ class EdgeSearcher:
             except Exception as e:
                 self.logger.error(f"Browser automation error: {e}")
                 print(f"{Colors.RED}❌ Automation failed: {e}{Colors.RESET}")
+            finally:
+                # --- Cleanup temporary profile copy ---
+                if should_cleanup_temp and temp_profile and temp_profile.exists():
+                    try:
+                        shutil.rmtree(temp_profile, ignore_errors=False)
+                        print(f"{Colors.GREEN}🗑️  Temporary profile '{temp_profile.name}' removed successfully.{Colors.RESET}")
+                        self.logger.info(f"Temporary profile '{temp_profile}' deleted.")
+                    except Exception as cleanup_err:
+                        print(f"{Colors.YELLOW}⚠️  Could not delete temporary profile '{temp_profile}': {cleanup_err}{Colors.RESET}")
+                        self.logger.warning(f"Failed to delete temp profile '{temp_profile}': {cleanup_err}")
 
 async def main() -> None:
     """Main entry point for the application."""

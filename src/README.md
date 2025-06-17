@@ -1,4 +1,4 @@
-# 🚀 Automatic Edge Browser Web Searcher (v2.1.1)
+# 🚀 Automatic Edge Browser Web Searcher (v1.5.0)
 
 A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Includes helper scripts for setup and unlocking locked profile files.
 
@@ -62,7 +62,7 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 
 ## 🛠️ Handling Locked Profile Files
 
-If you ever see a file-lock error (e.g. “WinError 32”), use the helper script:
+If you ever see a file-lock error (e.g. "WinError 32"), use the helper script:
 
 ```powershell
 python process_killer.py History

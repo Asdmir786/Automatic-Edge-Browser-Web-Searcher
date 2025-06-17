@@ -20,7 +20,7 @@ This Python application automates Microsoft Edge browser searches using Playwrig
 
 To get started quickly, follow these steps:
 
-1. **Install Python 3.9+** (if you don't already have it). Ensure `python` is on your PATH.
+1. **Install Python 3.13+** (if you don't already have it). Ensure `python` is on your PATH.
 2. **Download or clone** this repository.
 3. **Open an elevated terminal** (Administrator on Windows, or a root-privileged shell on Linux/macOS) inside the project folder.
 4. **Run the automated setup script**:
