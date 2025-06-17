@@ -36,6 +36,12 @@ from typing import List, Optional, Tuple
 import psutil  # For process management
 from types import MethodType
 
+# Optional: Windows toast notifications via winotify
+try:
+    from winotify import Notification, audio  # type: ignore
+except ImportError:  # winotify not installed or not on Windows
+    Notification = None
+
 # --- Admin Check and Relaunch Logic (Windows Only) ---
 def is_admin() -> bool:
     """Checks if the current script is running with admin privileges (Windows)."""
@@ -475,7 +481,8 @@ class EdgeSearcher:
         # Choose real User Data instead of copy for login persistence
         user_data_arg = str(edge_data_dir)
         profile_dir_arg = f"--profile-directory={selected_profile.name}"
-        print(f"\n{Colors.MAGENTA}🚀 Starting {search_count} searches...{Colors.RESET}\n")
+        search_or_searches = "search" if search_count == 1 else "searches"
+        print(f"\n{Colors.MAGENTA}🚀 Starting {search_count} {search_or_searches}...{Colors.RESET}\n")
         # Start Playwright automation
         async with async_playwright() as p:
             try:
@@ -531,9 +538,13 @@ class EdgeSearcher:
                         await asyncio.sleep(delay)
                 await browser.close()
                 print(f"\n{Colors.GREEN}🎉 Completed {successful_searches}/{search_count} searches successfully!{Colors.RESET}")
+                # Toast notification on success
+                self._send_notification("Searches Complete",
+                                       f"Completed {successful_searches}/{search_count} Bing searches.")
             except Exception as e:
                 self.logger.error(f"Browser automation error: {e}")
                 print(f"{Colors.RED}❌ Automation failed: {e}{Colors.RESET}")
+                self._send_notification("Automation Failed", str(e))
             finally:
                 # --- Cleanup temporary profile copy ---
                 if should_cleanup_temp and temp_profile and temp_profile.exists():
@@ -544,6 +555,24 @@ class EdgeSearcher:
                     except Exception as cleanup_err:
                         print(f"{Colors.YELLOW}⚠️  Could not delete temporary profile '{temp_profile}': {cleanup_err}{Colors.RESET}")
                         self.logger.warning(f"Failed to delete temp profile '{temp_profile}': {cleanup_err}")
+
+    # --- Windows toast notification helper ---
+    def _send_notification(self, title: str, msg: str) -> None:
+        """Send a Windows toast notification if winotify is available."""
+        icon_path = os.path.abspath(r".\icons\microsoft-edge.ico")
+        if platform.system() != "Windows" or Notification is None:
+            return  # Not supported on this OS or library missing
+        try:
+            toast = Notification(app_id="Edge Auto Searcher",
+                                 title=title,
+                                 msg=msg,
+                                 icon=icon_path,
+                                 duration="short")
+            toast.set_audio(audio.Default, loop=False)  # Default notification sound
+            toast.show()
+        except Exception as e:
+            # Do not crash on notification failure; just log it.
+            self.logger.warning(f"Notification failed: {e}")
 
 async def main() -> None:
     """Main entry point for the application."""
