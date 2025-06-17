@@ -52,7 +52,7 @@ Automatic-Edge-Browser-Web-Searcher/
     ├── process_killer.py    # Utility to kill processes locking files
     ├── requirements.txt     # Python dependencies
     ├── setup.py             # Automated setup script
-    ├── queries.txt          # Search queries (700+ included)
+    ├── queries.txt          # Search queries (1000+ included)
     └── README.md            # Documentation file
 ```
 

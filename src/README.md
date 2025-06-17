@@ -56,7 +56,7 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
    * Enter the number of searches to perform.
 4. **Enjoy** human-like automated searches in Edge! 🌐🔍
 
-> **Tip:** `queries.txt` already contains **700 unique queries**, ready to go.
+> **Tip:** `queries.txt` already contains **1000 unique queries**, ready to go.
 
 ---
 
