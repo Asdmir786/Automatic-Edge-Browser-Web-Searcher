@@ -20,7 +20,7 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
   * Click **"Disable path length limit"** to bypass the 260-character MAX\_PATH limitation.
 * **🛠️ PowerShell (Run as Administrator): **
 
-  *⚠️ After running ``` python ./setup.py ```, run this: *
+  *⚠️ After running ``` python ./setup.py ```, run this:*
 
   ```powershell
   Unblock-File -Path ".venv\Scripts\Activate.ps1"
