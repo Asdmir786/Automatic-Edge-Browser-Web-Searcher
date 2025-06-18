@@ -6,21 +6,24 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 
 ## 📋 Prerequisites
 
-* **OS:** Windows 10 or higher
-* **Edge Browser:** Version 109.0.1518.78 or higher
-* **Python Libraries:** psutil is needed, you can install it with:
+* **OS:** Windows 10 or higher  
+* **Edge Browser:** Version 109.0.1518.78 or higher  
+* **Python Libraries:** `psutil` is needed, install it with:
 
-  ```bash
+  ```powershell
   pip install psutil
   ```
-* **Python:** Version 3.9+ (Python 3.13.4 most recommended). When installing Python:
 
-  * Run the installer with **Administrator privileges** (to configure `py.exe`).
-  * Check **"Add python.exe to PATH"**.
-  * Click **"Disable path length limit"** to bypass the 260-character MAX\_PATH limitation.
-* **🛠️ PowerShell (Run as Administrator): **
+* **Python:** Version 3.9+ (Python 3.13.4 most recommended)
+  When installing Python:
 
-  *⚠️ After running ``` python ./setup.py ```, run this:*
+  * Run the installer with **Administrator privileges**
+  * Check **"Add python.exe to PATH"**
+  * Click **"Disable path length limit"** to bypass 260-character MAX\_PATH
+
+* **PowerShell (Run as Administrator):**
+
+  After running the setup script, unblock PowerShell script execution:
 
   ```powershell
   Unblock-File -Path ".venv\Scripts\Activate.ps1"
@@ -30,52 +33,59 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 
 ## ⚙️ Installation & Setup
 
-1. **Clone or download** this repository and open PowerShell *as Administrator*.
-2. **Navigate** into the project folder:
+1. **Clone or download** this repository and open PowerShell **as Administrator**.
+
+2. **Navigate into the project folder:**
 
    ```powershell
    cd C:\path\to\edge-searcher
    ```
-3. **Run the setup script** to install any missing dependencies and Playwright browsers:
+
+3. **Run the setup script** to install dependencies and browsers:
 
    ```powershell
    python setup.py
    ```
 
-   * Installs Python packages from `requirements.txt` (if not done already).
-   * Invokes `playwright install` to fetch Edge/Chromium browsers.
+   This will:
+
+   * Install packages from `requirements.txt`
+   * Run `playwright install` to fetch Chromium/Edge browsers
 
 ---
 
 ## ▶️ Running the Searcher
 
-1. **Open PowerShell as Administrator** (required for profile copying).
-2. **Launch** the main automation:
+1. **Open PowerShell as Administrator**.
+
+2. **Run the main automation script:**
 
    ```powershell
    python main.py
    ```
-3. **Follow the prompts**:
 
-   * Select your Edge profile (or let it use the default).
-   * Choose between a direct profile launch or a temporary copy.
-   * Enter the number of searches to perform.
-4. **Enjoy** human-like automated searches in Edge! 🌐🔍
+3. **Follow the prompts:**
 
-> **Tip:** `queries.txt` already contains **1000 unique queries**, ready to go.
+   * Choose an Edge profile (or let it auto-select the default)
+   * Choose direct or temporary profile copy
+   * Enter the number of searches to perform
+
+4. Sit back and watch human-like Edge browsing! 🌐🔍
+
+> 💡 `queries.txt` includes **1000 ready-to-run unique queries**.
 
 ---
 
 ## 🛠️ Handling Locked Profile Files
 
-If you ever see a file-lock error (e.g. "WinError 32"), use the helper script:
+If you encounter a locked file error (e.g., `WinError 32`), run:
 
 ```powershell
 python process_killer.py History
 ```
 
-* Pass any part of the locked filename (e.g., `Cookies`, `History`).
-* It will auto-elevate, list locking processes, and let you terminate them safely.
+* Replace `History` with any locked file name (e.g., `Cookies`, `Login Data`)
+* Script will list and let you safely terminate locking processes
 
 ---
 
