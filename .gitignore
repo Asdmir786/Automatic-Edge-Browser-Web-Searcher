@@ -8,3 +8,7 @@ build-*/
 venv/
 .venv/
 log*.txt
+*.spec
+dist/
+build/
+*.exe
