@@ -22,10 +22,10 @@ To get started quickly, follow these steps:
 
 1. **Install Python 3.13+** (if you don't already have it). Ensure `python` is on your PATH.
 2. **Download or clone** this repository.
-3. **Open an elevated terminal** (Administrator on Windows, or a root-privileged shell on Linux/macOS) inside the project folder.
+3. **Open Command Prompt as Administrator** (on Windows) or elevated terminal (Linux/macOS) inside the project folder.
 4. **Run the automated setup script**:
 
-   ```bash
+   ```cmd
    python setup.py
    ```
 
@@ -37,7 +37,7 @@ To get started quickly, follow these steps:
 
 5. When it finishes, **activate the virtual environment** as instructed on-screen, then start the program:
 
-   ```bash
+   ```cmd
    python main.py
    ```
 
@@ -73,19 +73,25 @@ The application automatically:
 3. **Creates** temporary copies to avoid conflicts
 4. **Uses** persistent browser context
 
-### Process Killer Utility
+### Handling Locked Files
 
-If you encounter file locking issues (WinError 32) during profile copying, use the included `process_killer.py` utility:
+If you encounter file locking issues (WinError 32) during profile copying, use these Command Prompt commands:
 
-```bash
-python src/process_killer.py Cookies
+```cmd
+taskkill /f /im msedge.exe
 ```
 
-This utility will:
-1. **Find** processes locking the specified file (e.g., "Cookies")
-2. **List** them with their PIDs and names
-3. **Allow** you to safely terminate the locking process
-4. **Require** administrator privileges (auto-elevates if needed)
+Alternatively, you can kill specific Edge processes:
+```cmd
+tasklist | findstr msedge
+taskkill /f /pid [PID_NUMBER]
+```
+
+These commands will:
+1. **Terminate** all Microsoft Edge processes that may be locking files
+2. **Free up** locked profile files for copying
+3. **Require** Command Prompt to be run as Administrator
+4. **Allow** the automation script to proceed without file conflicts
 
 ## 🖥️ Platform Support
 

@@ -10,7 +10,7 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 * **Edge Browser:** Version 109.0.1518.78 or higher  
 * **Python Libraries:** `psutil` is needed, install it with:
 
-  ```powershell
+  ```cmd
   pip install psutil
   ```
 
@@ -19,31 +19,27 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 
   * Run the installer with **Administrator privileges**
   * Check **"Add python.exe to PATH"**
-  * Click **"Disable path length limit"** to bypass 260-character MAX\_PATH
+  * Click **"Disable path length limit"** to bypass 260-character MAX_PATH
 
-* **PowerShell (Run as Administrator):**
+* **Command Prompt (Run as Administrator):**
 
-  After running the setup script, unblock PowerShell script execution:
-
-  ```powershell
-  Unblock-File -Path ".venv\Scripts\Activate.ps1"
-  ```
+  **Note:** Use Command Prompt instead of PowerShell. PowerShell is not recommended due to execution policy restrictions and compatibility issues.
 
 ---
 
 ## ⚙️ Installation & Setup
 
-1. **Clone or download** this repository and open PowerShell **as Administrator**.
+1. **Clone or download** this repository and open Command Prompt **as Administrator**.
 
 2. **Navigate into the project folder:**
 
-   ```powershell
+   ```cmd
    cd C:\path\to\edge-searcher
    ```
 
 3. **Run the setup script** to install dependencies and browsers:
 
-   ```powershell
+   ```cmd
    python setup.py
    ```
 
@@ -56,11 +52,11 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 
 ## ▶️ Running the Searcher
 
-1. **Open PowerShell as Administrator**.
+1. **Open Command Prompt as Administrator**.
 
 2. **Run the main automation script:**
 
-   ```powershell
+   ```cmd
    python main.py
    ```
 
@@ -78,14 +74,15 @@ A simple Python tool to automate Bing searches in Microsoft Edge on Windows. Inc
 
 ## 🛠️ Handling Locked Profile Files
 
-If you encounter a locked file error (e.g., `WinError 32`), run:
+If you encounter a locked file error (e.g., `WinError 32`), you can kill Edge processes with this command:
 
-```powershell
-python process_killer.py History
+```cmd
+taskkill /f /im msedge.exe
 ```
 
-* Replace `History` with any locked file name (e.g., `Cookies`, `Login Data`)
-* Script will list and let you safely terminate locking processes
+* This will forcefully terminate all Microsoft Edge processes
+* Alternative: Use Task Manager to manually end Edge processes
+* Wait a few seconds before retrying the script
 
 ---
 

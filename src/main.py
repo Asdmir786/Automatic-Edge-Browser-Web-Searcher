@@ -9,10 +9,7 @@ It loads search queries from queries.txt, removes duplicates, and performs a spe
 number of random Bing searches. The program simulates human-like typing and delays,
 and provides progress feedback in the console. It enumerates real Edge user profiles
 and allows the user to pick one for persistent context via Playwright.
-This script will attempt to run with administrator privileges. If it encounters
-WinError 32 (file locked by another process) during profile copying, you can use
-the accompanying 'process_killer.py' script to identify and terminate the locking
-process for the problematic file (e.g., Cookies).
+This script will attempt to run with administrator privileges.
 Features:
 - Cross-platform support (Windows, macOS, Linux)
 - Modern Python 3.13.4 features
@@ -245,10 +242,6 @@ class EdgeSearcher:
                 except Exception as e_rm:
                     self.logger.error(f"Failed to remove existing locked temp profile '{temp_profile.name}': {e_rm}")
                     print(f"{Colors.RED}❌ Critical error: Could not remove locked temp profile '{temp_profile.name}'. Please remove it manually and restart.{Colors.RESET}")
-                    # If process_killer.py is available, suggest using it.
-                    killer_script_path = Path.cwd() / "process_killer.py"
-                    if killer_script_path.exists():
-                        print(f"{Colors.CYAN}💡 You can try using '{killer_script_path.name}' to find and kill processes locking files in this directory.{Colors.RESET}")
                     sys.exit(1)
         print(f"{Colors.YELLOW}📁 Creating temporary profile copy...{Colors.RESET}")
         # Create the destination directory
@@ -299,7 +292,7 @@ class EdgeSearcher:
                         self.logger.error(f"{Colors.RED}   Files locked by processes:{Colors.RESET}")
                         for file, pid, name in locked_files:
                             self.logger.error(f"{Colors.RED}     - {file} locked by PID={pid}, Name={name}{Colors.RESET}")
-                    self.logger.error(f"{Colors.YELLOW}   Consider using 'process_killer.py' to identify and terminate the locking process.{Colors.RESET}")
+
                     raise OSError(f"File copying failed due to locked files: {error}")
             print(f"{Colors.YELLOW}⚠️ Some files could not be copied, but will continue with partial profile.{Colors.RESET}")
         else:

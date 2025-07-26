@@ -2,9 +2,15 @@
 # Version: 1.6.0
 # Compatible with Python 3.13.4+
 
-# Core automation library
-playwright>=1.52.0
+# Core automation library (Playwright pulls in pyee, greenlet, typing_extensions)
+playwright==1.54.0  # Browser automation engine
 
-# Additional utilities (optional but recommended)
-colorama>=0.4.6  # Enhanced cross-platform colored terminal output
-psutil>=5.9.0    # System and process utilities
+# Mandatory utilities
+colorama==0.4.6          # Cross-platform coloured terminal output
+psutil==7.0.0            # System and process utilities (process enumeration, CPU/ram stats)
+winotify==1.1.0          # Native Windows toast notifications
+
+# Transitive runtime requirements (locked for reproducibility)
+greenlet==3.2.3
+pyee==13.0.0
+typing_extensions==4.14.1
